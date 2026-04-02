@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
 from datetime import datetime
@@ -48,6 +49,14 @@ class ActionPayload(BaseModel):
     rolled_back: bool = False
     timestamp: Optional[str] = None
 
+@app.get("/")
+def landing():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    index_path = os.path.join(base_dir, "..", "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"status": "AgentBreaker API", "version": "0.1.0"}
+
 @app.get("/health")
 def health():
     return {"status": "ok", "version": "0.1.0"}
@@ -84,11 +93,3 @@ def list_agents(db=Depends(get_db), _=Depends(verify_api_key)):
 def list_alerts(db=Depends(get_db), _=Depends(verify_api_key)):
     rows = db.execute("SELECT * FROM alerts ORDER BY created_at DESC LIMIT 50").fetchall()
     return [dict(r) for r in rows]
-
-from fastapi.responses import FileResponse
-import os
-
-@app.get("/")
-def landing():
-    index_path = os.path.join(os.path.dirname(__file__), "..", "index.html")
-    return FileResponse(index_path)
