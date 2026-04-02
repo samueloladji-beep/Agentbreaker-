@@ -52,7 +52,7 @@ class ActionPayload(BaseModel):
 @app.get("/")
 def landing():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    index_path = os.path.join(base_dir, "..", "index.html")
+    index_path = os.path.join(base_dir, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return {"status": "AgentBreaker API", "version": "0.1.0"}
