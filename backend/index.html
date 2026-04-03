@@ -734,9 +734,10 @@ footer {
 </footer>
 
 <script>
-function handleSignup() {
-  const email = document.getElementById('hero-email').value;
-  const msg = document.getElementById('hero-msg');
+const MAILCHIMP_URL = "https://agentbreakerai.us18.list-manage.com/subscribe/post?u=dcd1edbe9c23cda5a7ed7f52d&id=9fc7a84336&f_id=0097aee6f0";
+
+function submitToMailchimp(email, msgId, inputId) {
+  const msg = document.getElementById(msgId);
   if (!email || !email.includes('@')) {
     msg.style.color = '#f87171';
     msg.textContent = 'Please enter a valid work email address.';
@@ -744,7 +745,7 @@ function handleSignup() {
   }
   const form = document.createElement('form');
   form.method = 'POST';
-  form.action = 'https://agentbreakerai.us18.list-manage.com/subscribe/post?u=dcd1edbe9c23cda5a7ed7f52d&id=9fc7a84336&f_id=0097aee6f0';
+  form.action = MAILCHIMP_URL;
   form.target = '_blank';
   const input = document.createElement('input');
   input.type = 'hidden';
@@ -756,21 +757,15 @@ function handleSignup() {
   document.body.removeChild(form);
   msg.style.color = '#4ade80';
   msg.textContent = "You're on the list! We'll be in touch within 24 hours.";
-  document.getElementById('hero-email').value = '';
-  document.getElementById('hero-email').disabled = true;
+  document.getElementById(inputId).value = '';
+  document.getElementById(inputId).disabled = true;
+}
+
+function handleSignup() {
+  submitToMailchimp(document.getElementById('hero-email').value, 'hero-msg', 'hero-email');
 }
 function handleSignup2() {
-  const email = document.getElementById('cta-email').value;
-  const msg = document.getElementById('cta-msg');
-  if (!email || !email.includes('@')) {
-    msg.style.color = '#f87171';
-    msg.innerHTML = 'Please enter a valid work email address.';
-    return;
-  }
-  msg.style.color = '#4ade80';
-  msg.innerHTML = "You're on the list. We'll be in touch within 24 hours.";
-  document.getElementById('cta-email').value = '';
-  document.getElementById('cta-email').disabled = true;
+  submitToMailchimp(document.getElementById('cta-email').value, 'cta-msg', 'cta-email');
 }
 </script>
 </body>
