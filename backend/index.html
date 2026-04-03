@@ -742,8 +742,20 @@ function handleSignup() {
     msg.textContent = 'Please enter a valid work email address.';
     return;
   }
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = 'https://agentbreakerai.us18.list-manage.com/subscribe/post?u=dcd1edbe9c23cda5a7ed7f52d&id=bfc7a84336&f_id=0097aee6f0';
+  form.target = '_blank';
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'EMAIL';
+  input.value = email;
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
   msg.style.color = '#4ade80';
-  msg.textContent = "You're on the list. We'll be in touch within 24 hours.";
+  msg.textContent = "You're on the list! We'll be in touch within 24 hours.";
   document.getElementById('hero-email').value = '';
   document.getElementById('hero-email').disabled = true;
 }
