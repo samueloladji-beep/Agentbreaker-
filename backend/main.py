@@ -201,3 +201,8 @@ def onboard_user(
         cur.execute("INSERT INTO api_keys (org_id, key_hash, key_prefix, name) VALUES (%s, %s, %s, %s)", (org_id, hash_key(raw_key), raw_key[:12], "default"))
         db.commit()
     return {"org_id": org_id, "api_key": raw_key, "already_exists": False}
+
+@app.get("/favicon.svg")
+def serve_favicon():
+    favicon_path = os.path.join(os.path.dirname(__file__), "favicon.svg")
+    return FileResponse(favicon_path, media_type="image/svg+xml")
