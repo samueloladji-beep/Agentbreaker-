@@ -1,37 +1,265 @@
-import os, json, hashlib, secrets
-from typing import Any, Dict, Optional
+import os, json, hashlib, secrets, time, logging
+from typing import Any, Dict, Optional, List
+from datetime import datetime, timezone
 import psycopg
 from psycopg.rows import dict_row
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException, Depends, Header, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-app = FastAPI(title="Vaultak API", version="0.2.0")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("vaultak")
+
+app = FastAPI(title="Vaultak API", version="0.3.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "admin-change-me")
 
+# ─── Database ─────────────────────────────────────────────────────────────────
+
 def get_db():
-    conn = psycopg.connect(DATABASE_URL, row_factory=dict_row)
-    try:
-        yield conn
-    finally:
-        conn.close()
+    retries = 3
+    for attempt in range(retries):
+        try:
+            conn = psycopg.connect(DATABASE_URL, row_factory=dict_row, connect_timeout=10)
+            try:
+                yield conn
+            finally:
+                conn.close()
+            return
+        except Exception as e:
+            if attempt == retries - 1:
+                logger.error(f"Database connection failed after {retries} attempts: {e}")
+                raise HTTPException(status_code=503, detail="Database unavailable")
+            time.sleep(1)
 
 def init_db():
     with psycopg.connect(DATABASE_URL) as conn:
         with conn.cursor() as cur:
-            cur.execute("CREATE TABLE IF NOT EXISTS organizations (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, slug TEXT UNIQUE NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW())")
-            cur.execute("CREATE TABLE IF NOT EXISTS api_keys (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, key_hash TEXT UNIQUE NOT NULL, key_prefix TEXT NOT NULL, name TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW(), last_used TIMESTAMPTZ)")
-            cur.execute("CREATE TABLE IF NOT EXISTS agents (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, agent_id TEXT NOT NULL, name TEXT, kill_switch_mode TEXT DEFAULT 'alert', paused BOOLEAN DEFAULT FALSE, terminated BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(org_id, agent_id))")
-            cur.execute("CREATE TABLE IF NOT EXISTS actions (id BIGSERIAL PRIMARY KEY, org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, agent_id TEXT NOT NULL, session_id TEXT, action_type TEXT, resource TEXT, payload JSONB, risk_score REAL, flagged BOOLEAN DEFAULT FALSE, flag_reason TEXT, kill_switch_mode TEXT, rolled_back BOOLEAN DEFAULT FALSE, timestamp TIMESTAMPTZ DEFAULT NOW())")
-            cur.execute("CREATE TABLE IF NOT EXISTS alerts (id BIGSERIAL PRIMARY KEY, org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, agent_id TEXT, action_id BIGINT, level TEXT, message TEXT, acknowledged BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW())")
+            cur.execute("""CREATE TABLE IF NOT EXISTS organizations (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                name TEXT NOT NULL,
+                slug TEXT UNIQUE NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )""")
+            cur.execute("""CREATE TABLE IF NOT EXISTS api_keys (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+                key_hash TEXT UNIQUE NOT NULL,
+                key_prefix TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                last_used TIMESTAMPTZ
+            )""")
+            cur.execute("""CREATE TABLE IF NOT EXISTS agents (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+                agent_id TEXT NOT NULL,
+                name TEXT,
+                kill_switch_mode TEXT DEFAULT 'alert',
+                paused BOOLEAN DEFAULT FALSE,
+                terminated BOOLEAN DEFAULT FALSE,
+                baseline_actions INTEGER DEFAULT 0,
+                avg_risk_score REAL DEFAULT 0.0,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(org_id, agent_id)
+            )""")
+            cur.execute("""CREATE TABLE IF NOT EXISTS actions (
+                id BIGSERIAL PRIMARY KEY,
+                org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+                agent_id TEXT NOT NULL,
+                session_id TEXT,
+                action_type TEXT,
+                resource TEXT,
+                payload JSONB,
+                snapshot JSONB,
+                risk_score REAL,
+                risk_breakdown JSONB,
+                flagged BOOLEAN DEFAULT FALSE,
+                flag_reason TEXT,
+                kill_switch_mode TEXT,
+                rolled_back BOOLEAN DEFAULT FALSE,
+                rollback_at TIMESTAMPTZ,
+                rollback_reason TEXT,
+                timestamp TIMESTAMPTZ DEFAULT NOW()
+            )""")
+            cur.execute("""CREATE TABLE IF NOT EXISTS alerts (
+                id BIGSERIAL PRIMARY KEY,
+                org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+                agent_id TEXT,
+                action_id BIGINT,
+                level TEXT,
+                message TEXT,
+                acknowledged BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )""")
+            cur.execute("""CREATE TABLE IF NOT EXISTS rollback_log (
+                id BIGSERIAL PRIMARY KEY,
+                org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+                agent_id TEXT NOT NULL,
+                action_ids BIGINT[],
+                reason TEXT,
+                initiated_by TEXT DEFAULT 'system',
+                status TEXT DEFAULT 'completed',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )""")
             conn.commit()
+    logger.info("Database initialized successfully")
 
 @app.on_event("startup")
 def startup():
     init_db()
+
+# ─── Risk Scoring Engine ───────────────────────────────────────────────────────
+
+# Dimension 1: Action type risk weights
+ACTION_TYPE_RISK = {
+    "file_delete": 0.95,
+    "database_drop": 0.95,
+    "system_command": 0.90,
+    "permission_change": 0.85,
+    "database_write": 0.80,
+    "file_write": 0.75,
+    "api_call_external": 0.70,
+    "database_read": 0.30,
+    "file_read": 0.20,
+    "api_call_internal": 0.25,
+    "log": 0.05,
+}
+
+# Dimension 2: Resource sensitivity
+SENSITIVE_RESOURCE_PATTERNS = [
+    ("prod", 0.90), ("production", 0.90), ("/etc/", 0.90), ("/root/", 0.85),
+    ("password", 0.85), ("secret", 0.85), ("credential", 0.85), ("token", 0.80),
+    ("admin", 0.80), ("users", 0.75), ("payment", 0.85), ("billing", 0.80),
+    ("config", 0.65), ("database", 0.70), ("db", 0.65), ("backup", 0.70),
+    ("staging", 0.40), ("test", 0.20), ("dev", 0.20), ("log", 0.15),
+]
+
+def score_action_type(action_type: str) -> float:
+    if not action_type:
+        return 0.5
+    return ACTION_TYPE_RISK.get(action_type.lower(), 0.5)
+
+def score_resource_sensitivity(resource: str) -> float:
+    if not resource:
+        return 0.3
+    resource_lower = resource.lower()
+    for pattern, score in SENSITIVE_RESOURCE_PATTERNS:
+        if pattern in resource_lower:
+            return score
+    return 0.3
+
+def score_blast_radius(payload: dict) -> float:
+    if not payload:
+        return 0.2
+    score = 0.2
+    payload_str = json.dumps(payload).lower()
+    # Large data operations
+    if any(k in payload_str for k in ["*", "all", "bulk", "batch", "truncate", "drop"]):
+        score += 0.4
+    if any(k in payload_str for k in ["where", "filter", "limit"]):
+        score -= 0.1
+    # Payload size as proxy for blast radius
+    payload_size = len(payload_str)
+    if payload_size > 10000:
+        score += 0.3
+    elif payload_size > 1000:
+        score += 0.15
+    return min(max(score, 0.0), 1.0)
+
+def score_behavioral_deviation(agent_id: str, action_type: str, org_id: str, db) -> float:
+    try:
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT action_type, COUNT(*) as freq
+                FROM actions
+                WHERE org_id = %s AND agent_id = %s
+                AND timestamp > NOW() - INTERVAL '24 hours'
+                GROUP BY action_type
+            """, (org_id, agent_id))
+            history = {r["action_type"]: r["freq"] for r in cur.fetchall()}
+        if not history:
+            return 0.3  # New agent, moderate baseline
+        total = sum(history.values())
+        action_freq = history.get(action_type, 0)
+        if action_freq == 0:
+            return 0.7  # Never done this before — suspicious
+        ratio = action_freq / total
+        if ratio < 0.05:
+            return 0.6  # Rare action
+        elif ratio < 0.20:
+            return 0.4
+        else:
+            return 0.2  # Common action for this agent
+    except Exception:
+        return 0.3
+
+def score_time_pattern(timestamp: Optional[datetime] = None) -> float:
+    now = timestamp or datetime.now(timezone.utc)
+    hour = now.hour
+    weekday = now.weekday()  # 0=Monday, 6=Sunday
+    # Weekend activity
+    if weekday >= 5:
+        return 0.65
+    # Off-hours (before 7am or after 10pm UTC)
+    if hour < 7 or hour > 22:
+        return 0.60
+    # Business hours
+    if 9 <= hour <= 17:
+        return 0.15
+    return 0.30
+
+def compute_risk_score(
+    action_type: str,
+    resource: str,
+    payload: dict,
+    agent_id: str,
+    org_id: str,
+    db,
+    provided_score: Optional[float] = None
+) -> tuple[float, dict]:
+    """Compute weighted 5-dimension risk score."""
+    # If SDK provides a score, blend it with our engine (60% ours, 40% SDK)
+    d1 = score_action_type(action_type)
+    d2 = score_resource_sensitivity(resource)
+    d3 = score_blast_radius(payload)
+    d4 = score_behavioral_deviation(agent_id, action_type, org_id, db)
+    d5 = score_time_pattern()
+
+    # Weighted combination
+    weights = {"action_type": 0.30, "resource_sensitivity": 0.25,
+               "blast_radius": 0.20, "behavioral_deviation": 0.15, "time_pattern": 0.10}
+
+    engine_score = (
+        d1 * weights["action_type"] +
+        d2 * weights["resource_sensitivity"] +
+        d3 * weights["blast_radius"] +
+        d4 * weights["behavioral_deviation"] +
+        d5 * weights["time_pattern"]
+    )
+
+    final_score = engine_score
+    if provided_score is not None:
+        final_score = (engine_score * 0.6) + (provided_score * 0.4)
+
+    breakdown = {
+        "action_type": round(d1, 3),
+        "resource_sensitivity": round(d2, 3),
+        "blast_radius": round(d3, 3),
+        "behavioral_deviation": round(d4, 3),
+        "time_pattern": round(d5, 3),
+        "engine_score": round(engine_score, 3),
+        "final_score": round(final_score, 3),
+        "weights": weights
+    }
+
+    return round(final_score, 4), breakdown
+
+# ─── Auth ─────────────────────────────────────────────────────────────────────
 
 def hash_key(key):
     return hashlib.sha256(key.encode()).hexdigest()
@@ -39,10 +267,14 @@ def hash_key(key):
 def get_org(x_api_key: Optional[str] = Header(None), db=Depends(get_db)):
     if not x_api_key:
         raise HTTPException(status_code=401, detail="Missing API key")
-    with db.cursor() as cur:
-        cur.execute("UPDATE api_keys SET last_used = NOW() WHERE key_hash = %s RETURNING org_id", (hash_key(x_api_key),))
-        row = cur.fetchone()
-        db.commit()
+    try:
+        with db.cursor() as cur:
+            cur.execute("UPDATE api_keys SET last_used = NOW() WHERE key_hash = %s RETURNING org_id", (hash_key(x_api_key),))
+            row = cur.fetchone()
+            db.commit()
+    except Exception as e:
+        logger.error(f"Auth error: {e}")
+        raise HTTPException(status_code=503, detail="Service unavailable")
     if not row:
         raise HTTPException(status_code=401, detail="Invalid API key")
     return str(row["org_id"])
@@ -50,6 +282,8 @@ def get_org(x_api_key: Optional[str] = Header(None), db=Depends(get_db)):
 def require_admin(x_admin_key: Optional[str] = Header(None)):
     if x_admin_key != ADMIN_KEY:
         raise HTTPException(status_code=403, detail="Admin key required")
+
+# ─── Models ───────────────────────────────────────────────────────────────────
 
 class OrgCreate(BaseModel):
     name: str
@@ -62,19 +296,34 @@ class ActionLog(BaseModel):
     action_type: Optional[str] = None
     resource: Optional[str] = None
     payload: Optional[Dict[str, Any]] = None
-    risk_score: Optional[float] = 0.0
+    snapshot: Optional[Dict[str, Any]] = None  # State snapshot BEFORE action (for rollback)
+    risk_score: Optional[float] = None
     flagged: Optional[bool] = False
     flag_reason: Optional[str] = None
     kill_switch_mode: Optional[str] = "alert"
-    rolled_back: Optional[bool] = False
 
 class AgentUpdate(BaseModel):
     paused: Optional[bool] = None
     kill_switch_mode: Optional[str] = None
 
+class RollbackRequest(BaseModel):
+    agent_id: str
+    n_actions: Optional[int] = 1
+    reason: Optional[str] = "manual"
+    initiated_by: Optional[str] = "user"
+
+# ─── Endpoints ────────────────────────────────────────────────────────────────
+
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "0.2.0"}
+    try:
+        with psycopg.connect(DATABASE_URL, connect_timeout=5) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+        db_status = "ok"
+    except Exception:
+        db_status = "error"
+    return {"status": "ok", "version": "0.3.0", "database": db_status}
 
 @app.post("/admin/orgs")
 def create_org(body: OrgCreate, db=Depends(get_db), _=Depends(require_admin)):
@@ -100,15 +349,167 @@ def create_api_key(org_id: str, name: str = "default", db=Depends(get_db), _=Dep
 
 @app.post("/api/actions")
 def log_action(body: ActionLog, org_id: str = Depends(get_org), db=Depends(get_db)):
+    try:
+        # Compute risk score using 5-dimension engine
+        final_score, breakdown = compute_risk_score(
+            action_type=body.action_type or "",
+            resource=body.resource or "",
+            payload=body.payload or {},
+            agent_id=body.agent_id,
+            org_id=org_id,
+            db=db,
+            provided_score=body.risk_score
+        )
+
+        # Auto-flag based on engine score
+        auto_flagged = final_score >= 0.65
+        flagged = body.flagged or auto_flagged
+        flag_reason = body.flag_reason
+        if auto_flagged and not flag_reason:
+            flag_reason = f"Risk score {final_score:.2f} exceeds threshold (top dimension: {max(breakdown, key=lambda k: breakdown[k] if isinstance(breakdown[k], float) else 0)})"
+
+        with db.cursor() as cur:
+            # Upsert agent
+            cur.execute("""
+                INSERT INTO agents (org_id, agent_id, name, kill_switch_mode)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (org_id, agent_id) DO UPDATE
+                SET name = EXCLUDED.name, updated_at = NOW()
+            """, (org_id, body.agent_id, body.agent_name or body.agent_id, body.kill_switch_mode))
+
+            # Log action with snapshot for rollback
+            cur.execute("""
+                INSERT INTO actions (org_id, agent_id, session_id, action_type, resource,
+                    payload, snapshot, risk_score, risk_breakdown, flagged, flag_reason,
+                    kill_switch_mode, rolled_back)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, FALSE)
+                RETURNING id
+            """, (
+                org_id, body.agent_id, body.session_id, body.action_type, body.resource,
+                json.dumps(body.payload or {}),
+                json.dumps(body.snapshot or {}),
+                final_score,
+                json.dumps(breakdown),
+                flagged, flag_reason,
+                body.kill_switch_mode
+            ))
+            action_id = cur.fetchone()["id"]
+
+            # Create alert if flagged
+            if flagged:
+                level = "critical" if final_score >= 0.80 else "high" if final_score >= 0.65 else "medium"
+                cur.execute("""
+                    INSERT INTO alerts (org_id, agent_id, action_id, level, message)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (org_id, body.agent_id, action_id, level,
+                      f"{body.action_type or 'Action'} on {body.resource or 'unknown'} — risk {final_score:.2f}"))
+
+            # Auto-pause agent if in PAUSE mode and high risk
+            if body.kill_switch_mode == "PAUSE" and final_score >= 0.80:
+                cur.execute("""
+                    UPDATE agents SET paused = TRUE, updated_at = NOW()
+                    WHERE org_id = %s AND agent_id = %s
+                """, (org_id, body.agent_id))
+
+            # Auto-rollback if in ROLLBACK mode and critical risk
+            if body.kill_switch_mode == "ROLLBACK" and final_score >= 0.90:
+                cur.execute("""
+                    UPDATE actions SET rolled_back = TRUE, rollback_at = NOW(),
+                    rollback_reason = 'auto-rollback: critical risk score'
+                    WHERE id = %s
+                """, (action_id,))
+                cur.execute("""
+                    INSERT INTO rollback_log (org_id, agent_id, action_ids, reason, initiated_by)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (org_id, body.agent_id, [action_id], "auto-rollback: critical risk score", "system"))
+
+            db.commit()
+
+        return {
+            "logged": True,
+            "action_id": action_id,
+            "risk_score": final_score,
+            "risk_breakdown": breakdown,
+            "flagged": flagged,
+            "flag_reason": flag_reason
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error logging action: {e}")
+        raise HTTPException(status_code=500, detail="Failed to log action")
+
+@app.post("/api/rollback")
+def rollback_actions(body: RollbackRequest, org_id: str = Depends(get_org), db=Depends(get_db)):
+    """Roll back the last N actions for an agent."""
+    try:
+        with db.cursor() as cur:
+            # Get last N non-rolled-back actions with their snapshots
+            cur.execute("""
+                SELECT id, action_type, resource, payload, snapshot, timestamp
+                FROM actions
+                WHERE org_id = %s AND agent_id = %s AND rolled_back = FALSE
+                ORDER BY timestamp DESC
+                LIMIT %s
+            """, (org_id, body.agent_id, body.n_actions))
+            actions = [dict(r) for r in cur.fetchall()]
+
+            if not actions:
+                return {"rolled_back": 0, "message": "No actions to roll back"}
+
+            action_ids = [a["id"] for a in actions]
+
+            # Mark actions as rolled back
+            cur.execute("""
+                UPDATE actions
+                SET rolled_back = TRUE, rollback_at = NOW(), rollback_reason = %s
+                WHERE id = ANY(%s)
+            """, (body.reason, action_ids))
+
+            # Log rollback event
+            cur.execute("""
+                INSERT INTO rollback_log (org_id, agent_id, action_ids, reason, initiated_by)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+            """, (org_id, body.agent_id, action_ids, body.reason, body.initiated_by))
+            rollback_id = cur.fetchone()["id"]
+
+            # Create alert for rollback
+            cur.execute("""
+                INSERT INTO alerts (org_id, agent_id, level, message)
+                VALUES (%s, %s, 'high', %s)
+            """, (org_id, body.agent_id,
+                  f"Rollback executed: {len(action_ids)} action(s) reversed. Reason: {body.reason}"))
+
+            # Pause the agent after rollback
+            cur.execute("""
+                UPDATE agents SET paused = TRUE, updated_at = NOW()
+                WHERE org_id = %s AND agent_id = %s
+            """, (org_id, body.agent_id))
+
+            db.commit()
+
+        return {
+            "rolled_back": len(action_ids),
+            "rollback_id": rollback_id,
+            "action_ids": action_ids,
+            "snapshots_available": [a for a in actions if a.get("snapshot") and a["snapshot"] != "{}"],
+            "message": f"Successfully rolled back {len(action_ids)} action(s). Agent paused."
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Rollback error: {e}")
+        raise HTTPException(status_code=500, detail="Rollback failed")
+
+@app.get("/api/rollback/history")
+def get_rollback_history(agent_id: Optional[str] = None, org_id: str = Depends(get_org), db=Depends(get_db)):
     with db.cursor() as cur:
-        cur.execute("INSERT INTO agents (org_id, agent_id, name, kill_switch_mode) VALUES (%s, %s, %s, %s) ON CONFLICT (org_id, agent_id) DO UPDATE SET name = EXCLUDED.name, updated_at = NOW()", (org_id, body.agent_id, body.agent_name or body.agent_id, body.kill_switch_mode))
-        cur.execute("INSERT INTO actions (org_id, agent_id, session_id, action_type, resource, payload, risk_score, flagged, flag_reason, kill_switch_mode, rolled_back) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id", (org_id, body.agent_id, body.session_id, body.action_type, body.resource, json.dumps(body.payload or {}), body.risk_score, body.flagged, body.flag_reason, body.kill_switch_mode, body.rolled_back))
-        action_id = cur.fetchone()["id"]
-        if body.flagged:
-            level = "critical" if (body.risk_score or 0) >= 0.75 else "high" if (body.risk_score or 0) >= 0.5 else "medium"
-            cur.execute("INSERT INTO alerts (org_id, agent_id, action_id, level, message) VALUES (%s, %s, %s, %s, %s)", (org_id, body.agent_id, action_id, level, f"{body.action_type or 'Action'} on {body.resource or 'unknown'} - risk {body.risk_score:.2f}"))
-        db.commit()
-    return {"logged": True, "action_id": action_id}
+        if agent_id:
+            cur.execute("SELECT * FROM rollback_log WHERE org_id = %s AND agent_id = %s ORDER BY created_at DESC LIMIT 50", (org_id, agent_id))
+        else:
+            cur.execute("SELECT * FROM rollback_log WHERE org_id = %s ORDER BY created_at DESC LIMIT 50", (org_id,))
+        return [dict(r) for r in cur.fetchall()]
 
 @app.get("/api/actions")
 def get_actions(limit: int = 50, org_id: str = Depends(get_org), db=Depends(get_db)):
@@ -119,7 +520,19 @@ def get_actions(limit: int = 50, org_id: str = Depends(get_org), db=Depends(get_
 @app.get("/api/agents")
 def get_agents(org_id: str = Depends(get_org), db=Depends(get_db)):
     with db.cursor() as cur:
-        cur.execute("SELECT a.*, COUNT(ac.id) as total_actions, COUNT(ac.id) FILTER (WHERE ac.flagged) as flagged_actions, MAX(ac.timestamp) as last_seen, AVG(ac.risk_score) as avg_risk_score FROM agents a LEFT JOIN actions ac ON ac.agent_id = a.agent_id AND ac.org_id = a.org_id WHERE a.org_id = %s GROUP BY a.id ORDER BY a.created_at DESC", (org_id,))
+        cur.execute("""
+            SELECT a.*,
+                COUNT(ac.id) as total_actions,
+                COUNT(ac.id) FILTER (WHERE ac.flagged) as flagged_actions,
+                COUNT(ac.id) FILTER (WHERE ac.rolled_back) as rolled_back_actions,
+                MAX(ac.timestamp) as last_seen,
+                AVG(ac.risk_score) as avg_risk_score
+            FROM agents a
+            LEFT JOIN actions ac ON ac.agent_id = a.agent_id AND ac.org_id = a.org_id
+            WHERE a.org_id = %s
+            GROUP BY a.id
+            ORDER BY a.created_at DESC
+        """, (org_id,))
         return [dict(r) for r in cur.fetchall()]
 
 @app.patch("/api/agents/{agent_id}")
@@ -131,6 +544,12 @@ def update_agent(agent_id: str, body: AgentUpdate, org_id: str = Depends(get_org
             cur.execute("UPDATE agents SET kill_switch_mode = %s, updated_at = NOW() WHERE org_id = %s AND agent_id = %s", (body.kill_switch_mode, org_id, agent_id))
         db.commit()
     return {"updated": True}
+
+@app.get("/api/risk/score")
+def score_action(action_type: str, resource: str = "", org_id: str = Depends(get_org), db=Depends(get_db)):
+    """Preview risk score for an action before executing it."""
+    score, breakdown = compute_risk_score(action_type, resource, {}, "preview", org_id, db)
+    return {"risk_score": score, "breakdown": breakdown, "would_flag": score >= 0.65}
 
 @app.get("/api/alerts")
 def get_alerts(acknowledged: Optional[bool] = None, org_id: str = Depends(get_org), db=Depends(get_db)):
@@ -162,21 +581,35 @@ def get_stats(org_id: str = Depends(get_org), db=Depends(get_db)):
         total_actions = cur.fetchone()["c"]
         cur.execute("SELECT COUNT(*) as c FROM actions WHERE org_id = %s AND flagged = TRUE", (org_id,))
         flagged_actions = cur.fetchone()["c"]
+        cur.execute("SELECT COUNT(*) as c FROM actions WHERE org_id = %s AND rolled_back = TRUE", (org_id,))
+        rolled_back_actions = cur.fetchone()["c"]
         cur.execute("SELECT COUNT(*) as c FROM alerts WHERE org_id = %s AND acknowledged = FALSE", (org_id,))
         active_alerts = cur.fetchone()["c"]
-        cur.execute("SELECT COUNT(*) FILTER (WHERE risk_score >= 0.75) as critical, COUNT(*) FILTER (WHERE risk_score >= 0.5 AND risk_score < 0.75) as high, COUNT(*) FILTER (WHERE risk_score >= 0.25 AND risk_score < 0.5) as medium, COUNT(*) FILTER (WHERE risk_score < 0.25) as low FROM actions WHERE org_id = %s", (org_id,))
+        cur.execute("""
+            SELECT
+                COUNT(*) FILTER (WHERE risk_score >= 0.80) as critical,
+                COUNT(*) FILTER (WHERE risk_score >= 0.65 AND risk_score < 0.80) as high,
+                COUNT(*) FILTER (WHERE risk_score >= 0.40 AND risk_score < 0.65) as medium,
+                COUNT(*) FILTER (WHERE risk_score < 0.40) as low
+            FROM actions WHERE org_id = %s
+        """, (org_id,))
         dist = dict(cur.fetchone())
-    return {"total_agents": total_agents, "paused_agents": paused_agents, "total_actions": total_actions, "flagged_actions": flagged_actions, "active_alerts": active_alerts, "risk_distribution": {k: (v or 0) for k, v in dist.items()}}
-
-from fastapi.responses import FileResponse
-import os
+    return {
+        "total_agents": total_agents,
+        "paused_agents": paused_agents,
+        "total_actions": total_actions,
+        "flagged_actions": flagged_actions,
+        "rolled_back_actions": rolled_back_actions,
+        "active_alerts": active_alerts,
+        "risk_distribution": {k: (v or 0) for k, v in dist.items()}
+    }
 
 @app.get("/")
 def serve_landing():
     index_path = os.path.join(os.path.dirname(__file__), "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return {"status": "ok", "service": "Vaultak API"}
+    return {"status": "ok", "service": "Vaultak API", "version": "0.3.0"}
 
 @app.post("/api/onboard")
 def onboard_user(
