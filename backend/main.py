@@ -509,10 +509,6 @@ def update_agent_profile(agent_id: str, profile: AgentProfile, org_id: str = Dep
         raise HTTPException(status_code=404, detail="Agent not found")
     return dict(agent)
 
-    except Exception as e:
-        logger.error(f"Error logging action: {e}")
-        raise HTTPException(status_code=500, detail="Failed to log action")
-
 @app.post("/api/rollback")
 def rollback_actions(body: RollbackRequest, org_id: str = Depends(get_org), db=Depends(get_db)):
     """Roll back the last N actions for an agent."""
