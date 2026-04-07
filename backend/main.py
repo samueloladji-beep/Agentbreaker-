@@ -11,7 +11,9 @@ from pydantic import BaseModel
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("vaultak")
 
-app = FastAPI(title="Vaultak API", version="0.4.0")
+APP_VERSION = "0.5.1"
+
+app = FastAPI(title="Vaultak API", version=APP_VERSION)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
