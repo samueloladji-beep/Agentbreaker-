@@ -679,8 +679,12 @@ def get_stats(org_id: str = Depends(get_org), db=Depends(get_db)):
 def serve_landing():
     index_path = os.path.join(os.path.dirname(__file__), "index.html")
     if os.path.exists(index_path):
-        return FileResponse(index_path)
-    return {"status": "ok", "service": "Vaultak API", "version": "0.3.0"}
+        with open(index_path, "r") as f:
+            html = f.read()
+        html = html.replace("Vaultak · v0.5.1", f"Vaultak · v{APP_VERSION}")
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(content=html)
+    return {"status": "ok", "service": "Vaultak API", "version": APP_VERSION}
 
 @app.post("/api/onboard")
 def onboard_user(
