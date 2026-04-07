@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
+import fnmatch
 
 class AlertLevel(str, Enum):
     LOW = "low"
@@ -93,8 +94,30 @@ class AgentConfig:
     kill_switch_mode: KillSwitchMode = KillSwitchMode.ALERT
     alert_level_threshold: AlertLevel = AlertLevel.HIGH
     max_actions_per_minute: int = 60
+    max_risk_score: float = 1.0
     rollback_window: int = 10
     allowed_action_types: Optional[List[ActionType]] = None
+    allowed_resources: Optional[List[str]] = None
     blocked_resources: List[str] = field(default_factory=list)
     api_endpoint: Optional[str] = None
     api_key: Optional[str] = None
+
+    def matches_allowed_resource(self, resource: str) -> bool:
+        if self.allowed_resources is None:
+            return True
+        return any(fnmatch.fnmatch(resource, pattern) for pattern in self.allowed_resources)
+
+    def matches_blocked_resource(self, resource: str) -> bool:
+        return any(fnmatch.fnmatch(resource, pattern) for pattern in self.blocked_resources)
+
+    def to_dict(self):
+        return {
+            "agent_id": self.agent_id,
+            "name": self.name,
+            "kill_switch_mode": self.kill_switch_mode.value,
+            "max_actions_per_minute": self.max_actions_per_minute,
+            "max_risk_score": self.max_risk_score,
+            "allowed_action_types": [a.value for a in self.allowed_action_types] if self.allowed_action_types else None,
+            "allowed_resources": self.allowed_resources,
+            "blocked_resources": self.blocked_resources,
+        }

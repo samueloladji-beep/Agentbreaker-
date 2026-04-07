@@ -63,10 +63,26 @@ def init_db():
                 terminated BOOLEAN DEFAULT FALSE,
                 baseline_actions INTEGER DEFAULT 0,
                 avg_risk_score REAL DEFAULT 0.0,
+                allowed_action_types JSONB DEFAULT NULL,
+                allowed_resources JSONB DEFAULT NULL,
+                blocked_resources JSONB DEFAULT '[]',
+                max_actions_per_minute INTEGER DEFAULT 60,
+                max_risk_score REAL DEFAULT 1.0,
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 updated_at TIMESTAMPTZ DEFAULT NOW(),
                 UNIQUE(org_id, agent_id)
             )""")
+            # Add permission profile columns to existing tables if missing
+            for col, definition in [
+                ("allowed_action_types", "JSONB DEFAULT NULL"),
+                ("allowed_resources", "JSONB DEFAULT NULL"),
+                ("blocked_resources", "JSONB DEFAULT '[]'"),
+                ("max_actions_per_minute", "INTEGER DEFAULT 60"),
+                ("max_risk_score", "REAL DEFAULT 1.0"),
+            ]:
+                cur.execute(f"""
+                    ALTER TABLE agents ADD COLUMN IF NOT EXISTS {col} {definition}
+                """)
             cur.execute("""CREATE TABLE IF NOT EXISTS actions (
                 id BIGSERIAL PRIMARY KEY,
                 org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -309,6 +325,11 @@ class ActionLog(BaseModel):
     agent_id: str
     agent_name: Optional[str] = None
     session_id: Optional[str] = None
+    allowed_action_types: Optional[list] = None
+    allowed_resources: Optional[list] = None
+    blocked_resources: Optional[list] = None
+    max_actions_per_minute: Optional[int] = None
+    max_risk_score: Optional[float] = None
     action_type: Optional[str] = None
     resource: Optional[str] = None
     payload: Optional[Dict[str, Any]] = None
@@ -451,6 +472,43 @@ def log_action(body: ActionLog, org_id: str = Depends(get_org), db=Depends(get_d
         }
     except HTTPException:
         raise
+
+class AgentProfile(BaseModel):
+    allowed_action_types: Optional[list] = None
+    allowed_resources: Optional[list] = None
+    blocked_resources: Optional[list] = None
+    max_actions_per_minute: Optional[int] = None
+    max_risk_score: Optional[float] = None
+
+@app.patch("/api/agents/{agent_id}/profile")
+def update_agent_profile(agent_id: str, profile: AgentProfile, org_id: str = Depends(get_org), db=Depends(get_db)):
+    """Update an agent permission profile — define what the agent is allowed to do."""
+    import json as _json
+    with db.cursor() as cur:
+        cur.execute("""
+            UPDATE agents SET
+                allowed_action_types = COALESCE(%s::jsonb, allowed_action_types),
+                allowed_resources = COALESCE(%s::jsonb, allowed_resources),
+                blocked_resources = COALESCE(%s::jsonb, blocked_resources),
+                max_actions_per_minute = COALESCE(%s, max_actions_per_minute),
+                max_risk_score = COALESCE(%s, max_risk_score),
+                updated_at = NOW()
+            WHERE org_id = %s AND agent_id = %s
+            RETURNING *
+        """, (
+            _json.dumps(profile.allowed_action_types) if profile.allowed_action_types is not None else None,
+            _json.dumps(profile.allowed_resources) if profile.allowed_resources is not None else None,
+            _json.dumps(profile.blocked_resources) if profile.blocked_resources is not None else None,
+            profile.max_actions_per_minute,
+            profile.max_risk_score,
+            org_id, agent_id
+        ))
+        agent = cur.fetchone()
+        db.commit()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return dict(agent)
+
     except Exception as e:
         logger.error(f"Error logging action: {e}")
         raise HTTPException(status_code=500, detail="Failed to log action")
@@ -758,6 +816,37 @@ def check_action(body: PolicyCheck, org_id: str = Depends(get_org), db=Depends(g
                 return {"decision": "block", "reason": "Agent is terminated", "risk_score": risk_score, "risk_breakdown": breakdown}
             if agent["paused"]:
                 return {"decision": "block", "reason": "Agent is paused", "risk_score": risk_score, "risk_breakdown": breakdown}
+
+            # Enforce permission profile
+            import fnmatch, json as _json
+
+            # Check allowed action types
+            allowed_action_types = agent.get("allowed_action_types")
+            if allowed_action_types:
+                if isinstance(allowed_action_types, str):
+                    allowed_action_types = _json.loads(allowed_action_types)
+                if body.action_type not in allowed_action_types:
+                    return {"decision": "block", "reason": f"Action type '{body.action_type}' not in agent allowlist", "risk_score": risk_score, "risk_breakdown": breakdown}
+
+            # Check allowed resources (glob)
+            allowed_resources = agent.get("allowed_resources")
+            if allowed_resources:
+                if isinstance(allowed_resources, str):
+                    allowed_resources = _json.loads(allowed_resources)
+                if body.resource and not any(fnmatch.fnmatch(body.resource, p) for p in allowed_resources):
+                    return {"decision": "block", "reason": f"Resource '{body.resource}' not in agent allowlist", "risk_score": risk_score, "risk_breakdown": breakdown}
+
+            # Check blocked resources (glob)
+            blocked_resources = agent.get("blocked_resources") or []
+            if isinstance(blocked_resources, str):
+                blocked_resources = _json.loads(blocked_resources)
+            if body.resource and any(fnmatch.fnmatch(body.resource, p) for p in blocked_resources):
+                return {"decision": "block", "reason": f"Resource '{body.resource}' is blocked for this agent", "risk_score": risk_score, "risk_breakdown": breakdown}
+
+            # Check max risk score
+            max_risk_score = agent.get("max_risk_score") or 1.0
+            if risk_score > max_risk_score:
+                return {"decision": "block", "reason": f"Risk score {risk_score:.2f} exceeds agent max {max_risk_score:.2f}", "risk_score": risk_score, "risk_breakdown": breakdown}
 
         # Load org policies
         with db.cursor() as cur:

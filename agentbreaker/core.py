@@ -21,6 +21,7 @@ class AgentBreaker:
         self._session_id = str(uuid.uuid4())
         self._action_history: Deque[ActionLog] = deque(maxlen=1000)
         self._recent_window: Deque[ActionLog] = deque(maxlen=100)
+        self._action_times: Deque[datetime] = deque(maxlen=1000)
         self._paused = False
         self._terminated = False
         self._rollback_callbacks: List[Callable] = []
@@ -40,14 +41,18 @@ class AgentBreaker:
         action.flagged = action.risk_score >= self._alert_threshold()
         if action.flagged:
             action.flag_reason = f"Risk score {action.risk_score:.2f} exceeds threshold {self._alert_threshold():.2f}"
-        self._check_blocked_resource(action)
         self._check_allowed_action_type(action)
+        self._check_allowed_resource(action)
+        self._check_blocked_resource(action)
+        self._check_max_risk_score(action)
+        self._check_rate_limit()
         try:
             yield action
             with self._lock:
                 self.profile.update_from_action(action)
                 self._action_history.append(action)
                 self._recent_window.append(action)
+                self._action_times.append(datetime.utcnow())
             self._send_to_backend(action)
             if action.flagged:
                 self._trigger_kill_switch(action)
@@ -112,15 +117,29 @@ class AgentBreaker:
         if self._paused:
             raise AgentPausedError(self.config.agent_id, reason="Agent is paused awaiting human approval")
 
+    def _check_allowed_resource(self, action: ActionLog):
+        if not self.config.matches_allowed_resource(action.resource):
+            raise BehaviorViolationError(agent_id=self.config.agent_id, violation=f"Resource not in allowlist: {action.resource}", action_type=action.action_type.value)
+
     def _check_blocked_resource(self, action: ActionLog):
-        for blocked in self.config.blocked_resources:
-            if blocked.lower() in action.resource.lower():
-                raise BehaviorViolationError(agent_id=self.config.agent_id, violation=f"Access to blocked resource: {action.resource}", action_type=action.action_type.value)
+        if self.config.matches_blocked_resource(action.resource):
+            raise BehaviorViolationError(agent_id=self.config.agent_id, violation=f"Access to blocked resource: {action.resource}", action_type=action.action_type.value)
 
     def _check_allowed_action_type(self, action: ActionLog):
         if self.config.allowed_action_types is not None:
             if action.action_type not in self.config.allowed_action_types:
                 raise BehaviorViolationError(agent_id=self.config.agent_id, violation=f"Action type not in allowlist: {action.action_type.value}", action_type=action.action_type.value)
+
+    def _check_max_risk_score(self, action: ActionLog):
+        if action.risk_score > self.config.max_risk_score:
+            raise BehaviorViolationError(agent_id=self.config.agent_id, violation=f"Risk score {action.risk_score:.2f} exceeds max allowed {self.config.max_risk_score:.2f}", action_type=action.action_type.value)
+
+    def _check_rate_limit(self):
+        now = datetime.utcnow()
+        with self._lock:
+            recent_times = [t for t in self._action_times if (now - t).total_seconds() < 60]
+        if len(recent_times) >= self.config.max_actions_per_minute:
+            raise BehaviorViolationError(agent_id=self.config.agent_id, violation=f"Rate limit exceeded: {self.config.max_actions_per_minute} actions/minute", action_type="rate_limit")
 
     def _send_to_backend(self, action: ActionLog):
         if not self.config.api_endpoint:
