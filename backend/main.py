@@ -643,7 +643,10 @@ def onboard_user(
         if existing:
             cur.execute("SELECT key_prefix FROM api_keys WHERE org_id = %s", (str(existing["id"]),))
             key = cur.fetchone()
-            return {"org_id": str(existing["id"]), "already_exists": True, "key_prefix": key["key_prefix"] if key else None}
+            raw_key = f"vtk_{secrets.token_urlsafe(32)}"
+            cur.execute("UPDATE api_keys SET key_hash = %s, key_prefix = %s WHERE org_id = %s", (hash_key(raw_key), raw_key[:12], str(existing["id"])))
+            db.commit()
+            return {"org_id": str(existing["id"]), "already_exists": False, "api_key": raw_key}
         cur.execute("INSERT INTO organizations (name, slug) VALUES (%s, %s) RETURNING id", (name, slug))
         org_id = str(cur.fetchone()["id"])
         raw_key = f"vtk_{secrets.token_urlsafe(32)}"
