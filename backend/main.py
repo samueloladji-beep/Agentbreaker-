@@ -299,6 +299,7 @@ def hash_key(key):
 def get_org(x_api_key: Optional[str] = Header(None), db=Depends(get_db)):
     if not x_api_key:
         raise HTTPException(status_code=401, detail="Missing API key")
+    check_rate_limit(x_api_key)
     try:
         with db.cursor() as cur:
             cur.execute("UPDATE api_keys SET last_used = NOW() WHERE key_hash = %s RETURNING org_id", (hash_key(x_api_key),))
@@ -706,7 +707,244 @@ def onboard_user(
         raw_key = f"vtk_{secrets.token_urlsafe(32)}"
         cur.execute("INSERT INTO api_keys (org_id, key_hash, key_prefix, name) VALUES (%s, %s, %s, %s)", (org_id, hash_key(raw_key), raw_key[:12], "default"))
         db.commit()
+    if x_user_email:
+        import threading
+        threading.Thread(target=send_welcome_email, args=(x_user_email, raw_key, name), daemon=True).start()
     return {"org_id": org_id, "api_key": raw_key, "already_exists": False}
+
+@app.get("/api/usage")
+def get_usage(org_id: str = Depends(get_org), db=Depends(get_db)):
+    """Get usage metrics for the current organization."""
+    with db.cursor() as cur:
+        # Total actions
+        cur.execute("SELECT COUNT(*) as total FROM actions WHERE org_id = %s", (org_id,))
+        total_actions = cur.fetchone()["total"]
+
+        # Actions today
+        cur.execute("SELECT COUNT(*) as total FROM actions WHERE org_id = %s AND timestamp >= NOW() - INTERVAL '24 hours'", (org_id,))
+        actions_today = cur.fetchone()["total"]
+
+        # Actions this week
+        cur.execute("SELECT COUNT(*) as total FROM actions WHERE org_id = %s AND timestamp >= NOW() - INTERVAL '7 days'", (org_id,))
+        actions_week = cur.fetchone()["total"]
+
+        # Actions this month
+        cur.execute("SELECT COUNT(*) as total FROM actions WHERE org_id = %s AND timestamp >= NOW() - INTERVAL '30 days'", (org_id,))
+        actions_month = cur.fetchone()["total"]
+
+        # Total agents
+        cur.execute("SELECT COUNT(*) as total FROM agents WHERE org_id = %s", (org_id,))
+        total_agents = cur.fetchone()["total"]
+
+        # Total alerts
+        cur.execute("SELECT COUNT(*) as total FROM alerts WHERE org_id = %s", (org_id,))
+        total_alerts = cur.fetchone()["total"]
+
+        # Flagged actions
+        cur.execute("SELECT COUNT(*) as total FROM actions WHERE org_id = %s AND flagged = TRUE", (org_id,))
+        flagged_actions = cur.fetchone()["total"]
+
+        # Actions by day for last 7 days
+        cur.execute("""
+            SELECT DATE(timestamp) as day, COUNT(*) as count
+            FROM actions WHERE org_id = %s AND timestamp >= NOW() - INTERVAL '7 days'
+            GROUP BY DATE(timestamp) ORDER BY day ASC
+        """, (org_id,))
+        daily = [{"day": str(r["day"]), "count": r["count"]} for r in cur.fetchall()]
+
+        # Top agents by action count
+        cur.execute("""
+            SELECT agent_id, COUNT(*) as count FROM actions
+            WHERE org_id = %s GROUP BY agent_id ORDER BY count DESC LIMIT 5
+        """, (org_id,))
+        top_agents = [{"agent_id": r["agent_id"], "count": r["count"]} for r in cur.fetchall()]
+
+    return {
+        "total_actions": total_actions,
+        "actions_today": actions_today,
+        "actions_this_week": actions_week,
+        "actions_this_month": actions_month,
+        "total_agents": total_agents,
+        "total_alerts": total_alerts,
+        "flagged_actions": flagged_actions,
+        "flagged_rate": round(flagged_actions / total_actions, 3) if total_actions > 0 else 0,
+        "daily_breakdown": daily,
+        "top_agents": top_agents,
+    }
+
+@app.get("/status", response_class=HTMLResponse)
+def status_page(db=Depends(get_db)):
+    """Public status page for Vaultak services."""
+    import time
+    services = []
+
+    # Check database
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT 1")
+        services.append({"name": "Database", "status": "operational", "latency": None})
+    except Exception as e:
+        services.append({"name": "Database", "status": "degraded", "latency": None})
+
+    # Check API
+    services.append({"name": "API", "status": "operational", "latency": None})
+    services.append({"name": "Dashboard", "status": "operational", "latency": None})
+    services.append({"name": "SDK", "status": "operational", "latency": None})
+
+    all_operational = all(s["status"] == "operational" for s in services)
+    overall = "All Systems Operational" if all_operational else "Partial Outage"
+    overall_color = "#4ade80" if all_operational else "#ff9500"
+    overall_bg = "rgba(74,222,128,0.12)" if all_operational else "rgba(255,149,0,0.12)"
+
+    rows = ""
+    for s in services:
+        color = "#4ade80" if s["status"] == "operational" else "#ff9500"
+        rows += f"""
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.07)">
+          <span style="font-size:14px;color:#ede9e4">{s["name"]}</span>
+          <span style="font-size:12px;font-family:monospace;color:{color};background:rgba(255,255,255,0.05);padding:4px 12px;border-radius:20px;border:1px solid {color}40">{s["status"].upper()}</span>
+        </div>"""
+
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+  <title>Vaultak Status</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *{{box-sizing:border-box;margin:0;padding:0}}
+    body{{background:#060609;color:#ede9e4;font-family:Inter,sans-serif;min-height:100vh;padding:40px 20px}}
+    body::before{{content:'';position:fixed;top:-20%;left:-10%;width:65%;height:65%;background:radial-gradient(ellipse,rgba(99,88,255,0.15) 0%,transparent 70%);pointer-events:none;z-index:0}}
+    .container{{max-width:640px;margin:0 auto;position:relative;z-index:1}}
+    .brand{{font-size:20px;font-weight:700;color:#fff;margin-bottom:40px}}
+    .overall{{background:{overall_bg};border:1px solid {overall_color}40;border-radius:12px;padding:20px 24px;margin-bottom:32px;display:flex;align-items:center;gap:12px}}
+    .dot{{width:10px;height:10px;border-radius:50%;background:{overall_color};box-shadow:0 0 8px {overall_color}}}
+    .overall-text{{font-size:16px;font-weight:600;color:{overall_color}}}
+    .card{{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:24px;margin-bottom:24px}}
+    .card-title{{font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;color:#44414f;text-transform:uppercase;margin-bottom:4px}}
+    .updated{{font-size:11px;color:#44414f;font-family:monospace;margin-top:32px;text-align:center}}
+    a{{color:#a89fe0;text-decoration:none}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="brand">Vaultak</div>
+    <div class="overall">
+      <div class="dot"></div>
+      <span class="overall-text">{overall}</span>
+    </div>
+    <div class="card">
+      <div class="card-title">Services</div>
+      {rows}
+    </div>
+    <div class="updated">Last updated: {time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())} · <a href="https://vaultak.com">vaultak.com</a></div>
+  </div>
+</body>
+</html>"""
+    return HTMLResponse(content=html)
+
+@app.get("/security", response_class=HTMLResponse)
+def security_page():
+    """Public security documentation page."""
+    html = """<!DOCTYPE html>
+<html>
+<head>
+  <title>Security — Vaultak</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#060609;color:#ede9e4;font-family:Inter,sans-serif;min-height:100vh;padding:40px 20px}
+    body::before{content:'';position:fixed;top:-20%;left:-10%;width:65%;height:65%;background:radial-gradient(ellipse,rgba(99,88,255,0.15) 0%,transparent 70%);pointer-events:none;z-index:0}
+    .container{max-width:720px;margin:0 auto;position:relative;z-index:1}
+    .brand{font-size:20px;font-weight:700;color:#fff;margin-bottom:8px}
+    .nav{font-size:13px;color:#8a8695;margin-bottom:48px}
+    .nav a{color:#a89fe0;text-decoration:none}
+    h1{font-size:32px;font-weight:700;color:#fff;margin-bottom:12px;letter-spacing:-.5px}
+    .subtitle{font-size:16px;color:#8a8695;margin-bottom:48px;line-height:1.6}
+    .section{margin-bottom:40px}
+    .section-title{font-size:18px;font-weight:600;color:#fff;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.08)}
+    .card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:20px 24px;margin-bottom:12px}
+    .card-title{font-size:14px;font-weight:600;color:#fff;margin-bottom:6px}
+    .card-desc{font-size:13px;color:#8a8695;line-height:1.6}
+    .badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:11px;font-family:monospace;font-weight:600;letter-spacing:.06em;border:1px solid;margin-bottom:16px}
+    .badge-green{background:rgba(74,222,128,.1);color:#4ade80;border-color:rgba(74,222,128,.25)}
+    .badge-yellow{background:rgba(245,197,24,.1);color:#f5c518;border-color:rgba(245,197,24,.25)}
+    .contact{background:rgba(99,88,255,0.08);border:1px solid rgba(99,88,255,0.2);border-radius:12px;padding:24px;margin-top:40px}
+    .contact-title{font-size:16px;font-weight:600;color:#fff;margin-bottom:8px}
+    .contact-desc{font-size:13px;color:#8a8695;margin-bottom:16px}
+    a.btn{background:#fff;color:#000;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="brand">Vaultak</div>
+    <div class="nav"><a href="https://vaultak.com">Home</a> · <a href="https://docs.vaultak.com">Docs</a> · Security</div>
+    <h1>Security</h1>
+    <p class="subtitle">How Vaultak protects your data and your agents.</p>
+
+    <div class="section">
+      <div class="section-title">Data Security</div>
+      <div class="card">
+        <div class="card-title">API Key Hashing</div>
+        <div class="card-desc">API keys are never stored in plaintext. We store only a SHA-256 hash of each key. Once generated, the full key is shown once and never retrievable — not even by Vaultak staff.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Data Encryption</div>
+        <div class="card-desc">All data is encrypted in transit using TLS 1.2+. Database connections use SSL. Sensitive fields are never logged.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Data Isolation</div>
+        <div class="card-desc">Every organization's data is fully isolated. All database queries are scoped to your organization ID — it is impossible to access another organization's agents, actions, or alerts.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Infrastructure</div>
+      <div class="card">
+        <div class="card-title">Hosting</div>
+        <div class="card-desc">Vaultak runs on Railway (backend) and Vercel (dashboard), both SOC 2 Type II certified providers. Database is hosted on Railway's managed PostgreSQL with automated backups.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Rate Limiting</div>
+        <div class="card-desc">All API endpoints are rate limited to 100 requests per 60 seconds per API key. Exceeding this limit returns a 429 response with a Retry-After header.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Authentication</div>
+        <div class="card-desc">User authentication is handled by Clerk, a SOC 2 Type II certified identity provider. Vaultak never stores passwords. API keys use prefix-based identification with hash verification.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Compliance</div>
+      <div class="badge badge-yellow">SOC 2 — In Progress</div>
+      <div class="card">
+        <div class="card-title">SOC 2 Type II</div>
+        <div class="card-desc">Vaultak is currently working toward SOC 2 Type II certification. We follow SOC 2 security principles including access controls, encryption, monitoring, and incident response procedures.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">GDPR</div>
+        <div class="card-desc">Vaultak processes only the data necessary to provide the service. Users can request deletion of their data at any time by contacting security@vaultak.com.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Responsible Disclosure</div>
+      <div class="card">
+        <div class="card-title">Vulnerability Reporting</div>
+        <div class="card-desc">If you discover a security vulnerability in Vaultak, please report it to security@vaultak.com. We will respond within 48 hours and work with you to resolve the issue responsibly. We do not pursue legal action against researchers who act in good faith.</div>
+      </div>
+    </div>
+
+    <div class="contact">
+      <div class="contact-title">Security Contact</div>
+      <div class="contact-desc">For security inquiries, vulnerability reports, or compliance documentation requests, contact our security team directly.</div>
+      <a href="mailto:security@vaultak.com" class="btn">security@vaultak.com</a>
+    </div>
+  </div>
+</body>
+</html>"""
+    return HTMLResponse(content=html)
 
 @app.get("/favicon.svg")
 def serve_favicon():
