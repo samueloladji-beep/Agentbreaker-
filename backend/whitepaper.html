@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<title>White Paper: Runtime Security for Autonomous AI Agents - Vaultak</title>
+<meta name="description" content="Download the Vaultak white paper on runtime security for autonomous AI agents. Covers threat model, architecture, risk scoring, compliance, and enterprise deployment."/>
+<meta name="robots" content="index, follow"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#060609;color:#ede9e4;font-family:Inter,sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;top:-20%;left:-10%;width:65%;height:65%;background:radial-gradient(ellipse,rgba(99,88,255,0.12) 0%,transparent 70%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;bottom:-20%;right:-5%;width:55%;height:55%;background:radial-gradient(ellipse,rgba(20,180,160,0.08) 0%,transparent 70%);pointer-events:none;z-index:0}
+.page{max-width:1000px;margin:0 auto;padding:40px 24px;position:relative;z-index:1}
+.brand{font-size:18px;font-weight:700;color:#fff;margin-bottom:8px}
+.nav{font-size:13px;color:#8a8695;margin-bottom:60px}
+.nav a{color:#a89fe0;text-decoration:none}
+.layout{display:grid;grid-template-columns:1fr 420px;gap:60px;align-items:start}
+.left{}
+.tag{display:inline-block;background:rgba(99,88,255,0.12);border:1px solid rgba(99,88,255,0.25);color:#a89fe0;font-size:11px;font-family:monospace;padding:4px 12px;border-radius:20px;margin-bottom:20px;letter-spacing:.08em}
+h1{font-size:38px;font-weight:700;color:#fff;line-height:1.1;letter-spacing:-.5px;margin-bottom:16px}
+.subtitle{font-size:16px;color:#8a8695;line-height:1.7;margin-bottom:36px}
+.toc-title{font-size:11px;font-family:monospace;letter-spacing:.12em;color:#44414f;text-transform:uppercase;margin-bottom:14px}
+.toc-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.toc-item:last-child{border-bottom:none}
+.toc-num{font-family:monospace;font-size:11px;color:#44414f;min-width:20px}
+.toc-text{font-size:13px;color:#8a8695}
+.right{}
+.form-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.form-title{font-size:20px;font-weight:600;color:#fff;margin-bottom:6px}
+.form-sub{font-size:13px;color:#8a8695;margin-bottom:24px;line-height:1.6}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-family:monospace;letter-spacing:.1em;color:#44414f;text-transform:uppercase;margin-bottom:6px}
+.field input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;color:#fff;font-size:14px;outline:none;font-family:Inter,sans-serif;transition:border-color .15s}
+.field input:focus{border-color:rgba(255,255,255,0.25)}
+.field input::placeholder{color:#44414f}
+.submit-btn{width:100%;background:#fff;color:#000;border:none;border-radius:8px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;font-family:Inter,sans-serif;transition:background .15s}
+.submit-btn:hover{background:#e5e5e5}
+.privacy-note{font-size:11px;color:#44414f;text-align:center;margin-top:12px;line-height:1.5}
+.success{display:none;text-align:center;padding:20px 0}
+.success-icon{font-size:40px;margin-bottom:12px}
+.success-title{font-size:18px;font-weight:600;color:#fff;margin-bottom:8px}
+.success-desc{font-size:13px;color:#8a8695;margin-bottom:20px;line-height:1.6}
+.download-btn{display:inline-block;background:#fff;color:#000;padding:11px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px}
+.preview{margin-top:48px;padding-top:48px;border-top:1px solid rgba(255,255,255,0.07)}
+.preview-title{font-size:11px;font-family:monospace;letter-spacing:.12em;color:#44414f;text-transform:uppercase;margin-bottom:20px}
+.preview-text{font-size:14px;color:#6b6880;line-height:1.8}
+.preview-text p{margin-bottom:14px}
+@media(max-width:768px){.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="brand">Vaultak</div>
+  <div class="nav"><a href="https://vaultak.com">Home</a> &middot; White Paper</div>
+
+  <div class="layout">
+    <div class="left">
+      <div class="tag">WHITE PAPER</div>
+      <h1>Runtime Security for Autonomous AI Agents</h1>
+      <p class="subtitle">A technical deep dive into the threat model, architecture, risk scoring methodology, and compliance framework for governing AI agent deployments in production environments.</p>
+
+      <div class="toc-title">What is covered</div>
+      <div class="toc-item"><span class="toc-num">01</span><span class="toc-text">The governance gap in autonomous AI deployments</span></div>
+      <div class="toc-item"><span class="toc-num">02</span><span class="toc-text">Threat model: four categories of agent risk</span></div>
+      <div class="toc-item"><span class="toc-num">03</span><span class="toc-text">System architecture and integration patterns</span></div>
+      <div class="toc-item"><span class="toc-num">04</span><span class="toc-text">5-dimensional risk scoring methodology</span></div>
+      <div class="toc-item"><span class="toc-num">05</span><span class="toc-text">Declarative permission profiles</span></div>
+      <div class="toc-item"><span class="toc-num">06</span><span class="toc-text">Policy engine and pre-execution enforcement</span></div>
+      <div class="toc-item"><span class="toc-num">07</span><span class="toc-text">Automatic rollback and incident response</span></div>
+      <div class="toc-item"><span class="toc-num">08</span><span class="toc-text">HIPAA, SOC 2, GDPR, and PCI-DSS compliance</span></div>
+      <div class="toc-item"><span class="toc-num">09</span><span class="toc-text">Enterprise deployment and integration guide</span></div>
+      <div class="toc-item"><span class="toc-num">10</span><span class="toc-text">Use cases: fintech, healthcare, legal, infrastructure</span></div>
+
+      <div class="preview">
+        <div class="preview-title">Abstract</div>
+        <div class="preview-text">
+          <p>As autonomous AI agents are increasingly deployed in production environments with access to critical business systems, a significant security gap has emerged: the absence of runtime governance infrastructure.</p>
+          <p>Existing AI security tools address the input layer including prompt injection, adversarial inputs, and model manipulation but provide no mechanisms to govern, constrain, or reverse the actions agents take once they have system access.</p>
+          <p>This paper introduces Vaultak, a runtime security framework that provides behavioral monitoring, pre-execution enforcement, declarative permission profiles, security policy management, and automatic rollback for AI agent systems.</p>
+          <p style="color:#44414f;font-style:italic">Continue reading by downloading the full white paper.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="form-card">
+        <div id="form-view">
+          <div class="form-title">Download the white paper</div>
+          <div class="form-sub">Free. No spam. We will send you the PDF and occasional updates on AI agent security.</div>
+          <form onsubmit="handleSubmit(event)">
+            <div class="field">
+              <label>First name</label>
+              <input type="text" id="fname" placeholder="Samuel" required/>
+            </div>
+            <div class="field">
+              <label>Work email</label>
+              <input type="email" id="email" placeholder="you@company.com" required/>
+            </div>
+            <div class="field">
+              <label>Company</label>
+              <input type="text" id="company" placeholder="Acme Corp" required/>
+            </div>
+            <div class="field">
+              <label>Role</label>
+              <input type="text" id="role" placeholder="Security Engineer, CTO, etc."/>
+            </div>
+            <button type="submit" class="submit-btn">Download white paper &rarr;</button>
+          </form>
+          <div class="privacy-note">By downloading you agree to our <a href="/privacy" style="color:#a89fe0;text-decoration:none">Privacy Policy</a>. We never sell your data.</div>
+        </div>
+
+        <div class="success" id="success-view">
+          <div class="success-icon">&#10003;</div>
+          <div class="success-title">Your copy is ready</div>
+          <div class="success-desc">Thank you. Click below to download the white paper. We have also sent a copy to your email.</div>
+          <a href="/whitepaper/download" class="download-btn">Download PDF &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MAILCHIMP_URL = "https://vaultakai.us18.list-manage.com/subscribe/post?u=dcd1edbe9c23cda5a7ed7f52d&id=9fc7a84336&f_id=0097aee6f0";
+
+function handleSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value;
+  const fname = document.getElementById('fname').value;
+  const company = document.getElementById('company').value;
+
+  if (!email || !email.includes('@')) return;
+
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = MAILCHIMP_URL;
+  form.target = '_blank';
+  [['EMAIL', email], ['FNAME', fname], ['COMPANY', company]].forEach(([name, value]) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  });
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+
+  document.getElementById('form-view').style.display = 'none';
+  document.getElementById('success-view').style.display = 'block';
+}
+</script>
+</body>
+</html>

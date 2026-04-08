@@ -1377,6 +1377,11 @@ def blog_post(slug: str):
         return HTMLResponse(content=open(path).read())
     raise HTTPException(status_code=404, detail="Post not found")
 
+@app.get("/whitepaper", response_class=HTMLResponse)
+def whitepaper():
+    path = os.path.join(os.path.dirname(__file__), "whitepaper.html")
+    return HTMLResponse(content=open(path).read())
+
 @app.get("/favicon.svg")
 def serve_favicon():
     favicon_path = os.path.join(os.path.dirname(__file__), "favicon.svg")
