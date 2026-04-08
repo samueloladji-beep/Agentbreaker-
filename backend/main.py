@@ -1359,6 +1359,19 @@ def sitemap():
 </urlset>"""
     return Response(content=xml, media_type="application/xml")
 
+
+@app.get("/blog", response_class=HTMLResponse)
+def blog_index():
+    path = os.path.join(os.path.dirname(__file__), "blog_index.html")
+    return HTMLResponse(content=open(path).read())
+
+@app.get("/blog/{slug}", response_class=HTMLResponse)
+def blog_post(slug: str):
+    path = os.path.join(os.path.dirname(__file__), f"blog_{slug}.html")
+    if os.path.exists(path):
+        return HTMLResponse(content=open(path).read())
+    raise HTTPException(status_code=404, detail="Post not found")
+
 @app.get("/favicon.svg")
 def serve_favicon():
     favicon_path = os.path.join(os.path.dirname(__file__), "favicon.svg")

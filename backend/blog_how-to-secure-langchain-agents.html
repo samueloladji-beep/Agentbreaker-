@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<title>How to Secure LangChain Agents in Production - Vaultak Blog</title>
+<meta name="description" content="A practical guide to adding runtime security to LangChain agents."/>
+<meta name="keywords" content="LangChain security, LangChain agent monitoring, AI agent security"/>
+<meta property="og:title" content="How to Secure LangChain Agents in Production"/>
+<meta property="og:description" content="A practical guide to adding runtime security to LangChain agents."/>
+<meta name="robots" content="index, follow"/>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#060609;color:#ede9e4;font-family:Inter,sans-serif;min-height:100vh}body::before{content:'';position:fixed;top:-20%;left:-10%;width:65%;height:65%;background:radial-gradient(ellipse,rgba(99,88,255,0.1) 0%,transparent 70%);pointer-events:none;z-index:0}.container{max-width:720px;margin:0 auto;padding:40px 24px;position:relative;z-index:1}.brand{font-size:18px;font-weight:700;color:#fff;margin-bottom:8px}.nav{font-size:13px;color:#8a8695;margin-bottom:48px}.nav a{color:#a89fe0;text-decoration:none}.post-tag{display:inline-block;background:rgba(99,88,255,0.12);border:1px solid rgba(99,88,255,0.25);color:#a89fe0;font-size:11px;font-family:monospace;padding:4px 12px;border-radius:20px;margin-bottom:16px;letter-spacing:.08em}h1{font-size:36px;font-weight:700;color:#fff;line-height:1.15;letter-spacing:-.5px;margin-bottom:16px}.meta{font-size:13px;color:#44414f;margin-bottom:40px;font-family:monospace}h2{font-size:22px;font-weight:600;color:#fff;margin:40px 0 14px}h3{font-size:17px;font-weight:600;color:#fff;margin:28px 0 10px}p{font-size:15px;color:#8a8695;line-height:1.85;margin-bottom:18px}ul,ol{padding-left:20px;margin-bottom:18px}li{font-size:15px;color:#8a8695;line-height:1.85;margin-bottom:8px}strong{color:#ede9e4;font-weight:500}code{font-family:monospace;font-size:13px;background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:4px;color:#a89fe0}pre{background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:20px 24px;margin:24px 0;overflow-x:auto}pre code{background:none;padding:0;font-size:13px;line-height:1.8;color:#a89fe0}.cta{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:32px;margin:48px 0;text-align:center}.cta-title{font-size:20px;font-weight:600;color:#fff;margin-bottom:8px}.cta-desc{font-size:14px;color:#8a8695;margin-bottom:20px}.cta-btn{display:inline-block;background:#fff;color:#000;padding:11px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px}blockquote{border-left:3px solid rgba(99,88,255,0.5);padding-left:20px;margin:24px 0;color:#6b6880;font-style:italic}table{width:100%;border-collapse:collapse;margin:24px 0}th{text-align:left;font-size:11px;font-family:monospace;letter-spacing:.1em;color:#44414f;text-transform:uppercase;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08)}td{font-size:14px;color:#8a8695;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.05)}</style>
+</head>
+<body>
+<div class="container">
+<div class="brand">Vaultak</div>
+<div class="nav"><a href="https://vaultak.com">Home</a> &middot; <a href="https://vaultak.com/blog">Blog</a> &middot; How to Secure LangChain Agents</div>
+<div class="post-tag">TUTORIAL</div>
+<h1>How to Secure LangChain Agents in Production</h1>
+<div class="meta">April 7, 2026 &middot; 10 min read</div>
+<p>LangChain has become the most popular framework for building AI agents in Python. But it provides almost no built-in governance for what those agents do in production. This guide covers how to add runtime security before going live.</p>
+<h2>The problem</h2>
+<p>A typical LangChain agent with file system and database tools can read any file the process can access, write or delete files anywhere, execute arbitrary SQL, and make HTTP requests to any URL. There is no built-in mechanism to restrict this. LangChain trusts the model judgment. In production, that is not enough.</p>
+<h2>Step 1 &mdash; Install Vaultak</h2>
+<pre><code>pip install vaultak</code></pre>
+<h2>Step 2 &mdash; Define your permission profile</h2>
+<pre><code>from vaultak import Vaultak, ActionType, KillSwitchMode
+
+vt = Vaultak(
+    api_key="vtk_your_key_here",
+    allowed_action_types=[ActionType.FILE_READ, ActionType.DATABASE_QUERY],
+    allowed_resources=["/tmp/*", "/data/readonly/*"],
+    blocked_resources=["prod.*", "*.env", "*.key", "/etc/*"],
+    max_actions_per_minute=30,
+    max_risk_score=0.7,
+    mode=KillSwitchMode.PAUSE
+)</code></pre>
+<h2>Step 3 &mdash; Wrap your agent</h2>
+<pre><code>from langchain.agents import AgentExecutor
+
+agent = AgentExecutor(agent=..., tools=[...], llm=llm)
+
+with vt.monitor("langchain-agent"):
+    result = agent.invoke({"input": user_query})</code></pre>
+<p>Every tool call is now intercepted, risk-scored, and checked against your permission profile before execution.</p>
+<h2>Step 4 &mdash; Pre-execution checks for critical actions</h2>
+<pre><code>import requests
+
+def safe_delete(path):
+    r = requests.post("https://vaultak.com/api/check",
+        headers={"x-api-key": "vtk_..."},
+        json={"agent_id": "langchain-agent", "action_type": "file_delete", "resource": path}
+    )
+    if r.json()["decision"] != "allow":
+        return f"Blocked: {r.json()['reason']}"
+    os.remove(path)
+    return f"Deleted {path}"</code></pre>
+<p>After these steps your LangChain agent has a declared permission profile, pre-execution blocking, real-time risk scoring, full audit trail, and automatic pause on violations.</p>
+<div class="cta">
+<div class="cta-title">Ready to secure your AI agents?</div>
+<div class="cta-desc">Get started with Vaultak in 5 minutes. Free tier available.</div>
+<a href="https://app.vaultak.com" class="cta-btn">Get started free &rarr;</a>
+</div>
+</div></body></html>

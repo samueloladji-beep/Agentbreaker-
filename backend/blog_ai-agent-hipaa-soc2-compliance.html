@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<title>AI Agent Governance for HIPAA and SOC 2 Compliance - Vaultak Blog</title>
+<meta name="description" content="How to meet HIPAA and SOC 2 requirements when deploying AI agents."/>
+<meta name="keywords" content="AI agent HIPAA, AI agent SOC 2, AI agent compliance"/>
+<meta property="og:title" content="AI Agent Governance for HIPAA and SOC 2 Compliance"/>
+<meta property="og:description" content="How to meet HIPAA and SOC 2 requirements when deploying AI agents."/>
+<meta name="robots" content="index, follow"/>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#060609;color:#ede9e4;font-family:Inter,sans-serif;min-height:100vh}body::before{content:'';position:fixed;top:-20%;left:-10%;width:65%;height:65%;background:radial-gradient(ellipse,rgba(99,88,255,0.1) 0%,transparent 70%);pointer-events:none;z-index:0}.container{max-width:720px;margin:0 auto;padding:40px 24px;position:relative;z-index:1}.brand{font-size:18px;font-weight:700;color:#fff;margin-bottom:8px}.nav{font-size:13px;color:#8a8695;margin-bottom:48px}.nav a{color:#a89fe0;text-decoration:none}.post-tag{display:inline-block;background:rgba(99,88,255,0.12);border:1px solid rgba(99,88,255,0.25);color:#a89fe0;font-size:11px;font-family:monospace;padding:4px 12px;border-radius:20px;margin-bottom:16px;letter-spacing:.08em}h1{font-size:36px;font-weight:700;color:#fff;line-height:1.15;letter-spacing:-.5px;margin-bottom:16px}.meta{font-size:13px;color:#44414f;margin-bottom:40px;font-family:monospace}h2{font-size:22px;font-weight:600;color:#fff;margin:40px 0 14px}h3{font-size:17px;font-weight:600;color:#fff;margin:28px 0 10px}p{font-size:15px;color:#8a8695;line-height:1.85;margin-bottom:18px}ul,ol{padding-left:20px;margin-bottom:18px}li{font-size:15px;color:#8a8695;line-height:1.85;margin-bottom:8px}strong{color:#ede9e4;font-weight:500}code{font-family:monospace;font-size:13px;background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:4px;color:#a89fe0}pre{background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:20px 24px;margin:24px 0;overflow-x:auto}pre code{background:none;padding:0;font-size:13px;line-height:1.8;color:#a89fe0}.cta{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:32px;margin:48px 0;text-align:center}.cta-title{font-size:20px;font-weight:600;color:#fff;margin-bottom:8px}.cta-desc{font-size:14px;color:#8a8695;margin-bottom:20px}.cta-btn{display:inline-block;background:#fff;color:#000;padding:11px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px}blockquote{border-left:3px solid rgba(99,88,255,0.5);padding-left:20px;margin:24px 0;color:#6b6880;font-style:italic}table{width:100%;border-collapse:collapse;margin:24px 0}th{text-align:left;font-size:11px;font-family:monospace;letter-spacing:.1em;color:#44414f;text-transform:uppercase;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08)}td{font-size:14px;color:#8a8695;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.05)}</style>
+</head>
+<body>
+<div class="container">
+<div class="brand">Vaultak</div>
+<div class="nav"><a href="https://vaultak.com">Home</a> &middot; <a href="https://vaultak.com/blog">Blog</a> &middot; HIPAA and SOC 2 Compliance</div>
+<div class="post-tag">COMPLIANCE</div>
+<h1>AI Agent Governance for HIPAA and SOC 2 Compliance</h1>
+<div class="meta">April 7, 2026 &middot; 12 min read</div>
+<p>Regulated industries are deploying AI agents faster than compliance frameworks can keep up. The question every CISO is asking: how do we deploy these agents without violating our compliance obligations?</p>
+<h2>The compliance gap</h2>
+<table><tr><th>Requirement</th><th>Traditional systems</th><th>AI agents without governance</th></tr>
+<tr><td>Audit trail</td><td>Full logs of all data access</td><td>Model inference logs only</td></tr>
+<tr><td>Access control</td><td>Role-based, predictable</td><td>Dynamic, model-determined</td></tr>
+<tr><td>Data minimization</td><td>Enforced at query level</td><td>Agent may access more than needed</td></tr>
+<tr><td>Incident response</td><td>Manual investigation</td><td>No mechanism to reverse agent actions</td></tr></table>
+<h2>HIPAA requirements</h2>
+<h3>Access controls (164.312(a)(1))</h3>
+<p>You must implement technical policies that allow only authorized persons or software programs to access ePHI. For AI agents this means defining exactly which data sources the agent is permitted to access and enforcing those boundaries at runtime.</p>
+<pre><code>vt = Vaultak(
+    api_key="vtk_...",
+    allowed_resources=["data.deidentified.*"],
+    blocked_resources=["data.phi.*", "patients.identified.*"],
+    mode=KillSwitchMode.PAUSE
+)</code></pre>
+<h3>Audit controls (164.312(b))</h3>
+<p>Vaultak provides a complete log of every agent action including action type, resource accessed, timestamp, risk score, and outcome &mdash; exactly what HIPAA auditors need.</p>
+<h2>SOC 2 requirements</h2>
+<h3>CC6.1 &mdash; Logical access controls</h3>
+<p>AI agents with dynamic model-determined access patterns need runtime enforcement to satisfy this criterion.</p>
+<h3>CC7.2 &mdash; System monitoring</h3>
+<p>Vaultak behavioral monitoring and anomaly detection directly addresses the requirement to monitor system components for security events.</p>
+<h3>CC9.2 &mdash; Risk mitigation</h3>
+<p>Automatic rollback reversing agent actions on violation detection is a direct risk mitigation mechanism satisfying this criterion.</p>
+<h2>A compliant configuration</h2>
+<pre><code>vt = Vaultak(
+    api_key="vtk_...",
+    allowed_action_types=[ActionType.DATABASE_QUERY, ActionType.FILE_READ],
+    allowed_resources=["data.deidentified.*", "/reports/readonly/*"],
+    blocked_resources=["data.phi.*", "*.pii", "prod.*"],
+    max_risk_score=0.5,
+    max_actions_per_minute=10,
+    mode=KillSwitchMode.PAUSE
+)</code></pre>
+<blockquote>The question is not whether your compliance framework applies to AI agents. It does. The question is whether you have the controls to demonstrate compliance.</blockquote>
+<div class="cta">
+<div class="cta-title">Ready to secure your AI agents?</div>
+<div class="cta-desc">Get started with Vaultak in 5 minutes. Free tier available.</div>
+<a href="https://app.vaultak.com" class="cta-btn">Get started free &rarr;</a>
+</div>
+</div></body></html>
