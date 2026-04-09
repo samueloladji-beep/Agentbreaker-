@@ -1378,6 +1378,11 @@ def blog_post(slug: str):
         return HTMLResponse(content=open(path).read())
     raise HTTPException(status_code=404, detail="Post not found")
 
+@app.get("/whitepaper/download")
+def whitepaper_download():
+    path = os.path.join(os.path.dirname(__file__), "vaultak_whitepaper.pdf")
+    return FileResponse(path, media_type="application/pdf", filename="Vaultak-White-Paper.pdf")
+
 @app.get("/whitepaper", response_class=HTMLResponse)
 def whitepaper():
     path = os.path.join(os.path.dirname(__file__), "whitepaper.html")
