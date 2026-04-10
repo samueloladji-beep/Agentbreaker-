@@ -822,8 +822,8 @@ footer {
     </div>
     <div class="step-card">
       <div class="step-index" style="background:rgba(255,255,255,0.08);color:#ffffff;font-size:15px;letter-spacing:.05em;">Sentry</div>
-      <div class="step-title">Vaultak Sentry &mdash; Zero-code daemon</div>
-      <div class="step-body">Install with <code>pip install vaultak-sentry</code> and run any agent through Sentry. No code changes. Works with any language, any framework, any existing agent.</div>
+      <div class="step-title">Vaultak Sentry &mdash; Desktop app</div>
+      <div class="step-body">Download Sentry and monitor any agent with zero code changes. Works with any language, any framework. <a href="/#download" style="color:var(--text2);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.15);">Download for Mac, Windows, Linux →</a></div>
     </div>
     <div class="step-card">
       <div class="step-index" style="background:rgba(255,255,255,0.08);color:#ffffff;font-size:15px;letter-spacing:.05em;">Dashboard</div>
@@ -845,10 +845,10 @@ footer {
           <div style="font-size:11px;font-family:monospace;color:#ffffff;letter-spacing:.1em;margin-bottom:6px;">VAULTAK CORE</div>
           <div style="font-size:13px;color:#8a8695;line-height:1.6;">pip install vaultak &nbsp;&middot;&nbsp; Five lines of code &nbsp;&middot;&nbsp; Deep integration</div>
         </div>
-        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;">
-          <div style="font-size:11px;font-family:monospace;color:#ffffff;letter-spacing:.1em;margin-bottom:6px;">VAULTAK SENTRY</div>
-          <div style="font-size:13px;color:#8a8695;line-height:1.6;">Desktop app &nbsp;&middot;&nbsp; Zero code changes &nbsp;&middot;&nbsp; Any language &nbsp;&middot;&nbsp; <a href="/#download" style="color:var(--text2);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.15);">Download →</a></div>
-        </div>
+        <a href="/#download" style="display:block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;text-decoration:none;">
+          <div style="font-size:11px;font-family:monospace;color:#ffffff;letter-spacing:.1em;margin-bottom:6px;">VAULTAK SENTRY &nbsp;→</div>
+          <div style="font-size:13px;color:#8a8695;line-height:1.6;">Desktop app &nbsp;&middot;&nbsp; Zero code changes &nbsp;&middot;&nbsp; Any language &nbsp;&middot;&nbsp; Mac / Windows / Linux</div>
+        </a>
       </div>
     </div>
     <div class="code-window">
@@ -857,8 +857,7 @@ footer {
         <div class="dot dot-y"></div>
         <div class="dot dot-g"></div>
         <div style="display:flex;gap:0;margin-left:8px;">
-          <span id="tab-core" onclick="showTab('core')" style="font-size:12px;font-family:monospace;color:#ffffff;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);padding:4px 14px;border-radius:6px 0 0 6px;cursor:pointer;font-weight:600;">Core</span>
-          <span id="tab-sentry" onclick="showTab('sentry')" style="font-size:12px;font-family:monospace;color:#8a8695;background:transparent;border:1px solid rgba(255,255,255,0.15);padding:4px 14px;border-radius:0 6px 6px 0;cursor:pointer;">Sentry</span>
+          <span style="font-size:12px;font-family:monospace;color:#ffffff;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);padding:4px 14px;border-radius:6px;font-weight:600;">Core SDK</span>
         </div>
       </div>
       <div id="code-core" class="code-content">
@@ -879,7 +878,7 @@ footer {
         <div><span class="ca">&#x2192; Agent paused. Risk: 0.89</span></div>
         <div><span class="ca">&nbsp;&nbsp;Awaiting approval.</span><span class="cursor-blink"></span></div>
       </div>
-      <div id="code-sentry" class="code-content" style="display:none;">
+      <div id="code-sentry" class="code-content" style="display:none;visibility:hidden;">
         <div><span class="cc"># No code changes to your agent</span></div>
         <div><span class="cc"># Install once, govern everything</span></div>
         <br>
@@ -951,8 +950,8 @@ footer {
        onmouseover="this.style.borderColor='rgba(255,255,255,0.2)'"
        onmouseout="this.style.borderColor='var(--border)'">
       
-      <div style="font-size:15px;font-weight:700;color:var(--text1);margin-bottom:6px;">macOS</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:16px;">Apple Silicon · .pkg installer</div>
+      <div style="font-size:15px;font-weight:700;color:#ffffff;margin-bottom:16px;">macOS</div>
+      
       <div style="font-size:12px;font-weight:600;color:#ffffff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:8px 14px;display:inline-block;">Download .pkg</div>
     </a>
 
@@ -961,8 +960,8 @@ footer {
        onmouseover="this.style.borderColor='rgba(255,255,255,0.2)'"
        onmouseout="this.style.borderColor='var(--border)'">
       
-      <div style="font-size:15px;font-weight:700;color:var(--text1);margin-bottom:6px;">Windows</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:16px;">Windows 10/11 · .zip</div>
+      <div style="font-size:15px;font-weight:700;color:#ffffff;margin-bottom:16px;">Windows</div>
+      
       <div style="font-size:12px;font-weight:600;color:#ffffff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:8px 14px;display:inline-block;">Download .zip</div>
       <div style="position:absolute;top:12px;right:12px;font-size:10px;font-weight:600;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:4px;padding:2px 8px;">BETA</div>
     </a>
@@ -972,8 +971,8 @@ footer {
        onmouseover="this.style.borderColor='rgba(255,255,255,0.2)'"
        onmouseout="this.style.borderColor='var(--border)'">
       
-      <div style="font-size:15px;font-weight:700;color:var(--text1);margin-bottom:6px;">Linux</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:16px;">Ubuntu / Debian · .tar.gz</div>
+      <div style="font-size:15px;font-weight:700;color:#ffffff;margin-bottom:16px;">Linux</div>
+      
       <div style="font-size:12px;font-weight:600;color:#ffffff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:8px 14px;display:inline-block;">Download .tar.gz</div>
       <div style="position:absolute;top:12px;right:12px;font-size:10px;font-weight:600;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:4px;padding:2px 8px;">BETA</div>
     </a>
