@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
-  <meta name="description" content="Runtime security for autonomous AI agents. Monitor every action, enforce permission boundaries, and automatically roll back damage. pip install vaultak."/>
+  <meta name="description" content="Vaultak is the operating system for safe AI agents. Monitor every action, enforce permission boundaries, and automatically roll back damage. Zero code changes with Vaultak Sentry."/>
   <meta name="keywords" content="AI agent security, runtime security, AI agents, LLM security, agent governance, autonomous AI, LangChain security, CrewAI security, AI safety, AI agent monitoring"/>
   <meta property="og:title" content="Vaultak — Runtime Security for AI Agents"/>
   <meta property="og:description" content="Monitor, enforce, and roll back AI agent actions in real time. Five lines of code. No infrastructure changes."/>
@@ -540,6 +540,8 @@ footer {
 @media (max-width: 900px) {
   nav { padding: 0 20px; }
   .nav-links { display: none; }
+  [style*="grid-template-columns:repeat(5"] { grid-template-columns: 1fr 1fr !important; }
+  [style*="grid-template-columns:repeat(3"] { grid-template-columns: 1fr !important; }
   .hero { padding: 100px 20px 60px; }
   .stats-bar-inner { grid-template-columns: 1fr; }
   .stat-item { border-right: none; border-bottom: 1px solid var(--border); padding: 32px 24px; }
@@ -563,7 +565,7 @@ footer {
     Vaultak
   </a>
   <div class="nav-links">
-    <a href="#how">How it works</a>
+    <a href="#what">What it does</a><a href="#how">How it works</a>
     <a href="#modes">Modes</a>
     <a href="https://docs.vaultak.com" target="_blank">Docs</a><a href="https://vaultak.com/blog">Blog</a><a href="https://app.vaultak.com" class="nav-btn nav-btn-ghost">Sign in</a>
   </div>
@@ -576,14 +578,14 @@ footer {
 <section class="hero">
   <div class="hero-eyebrow">
     <div class="eyebrow-dot"></div>
-    Now in early access
+    The operating system for safe AI agents
   </div>
   <h1 class="hero-title">
-    Runtime security for<br>
-    <em>autonomous</em> AI agents
+    Your AI agents can act.<br>
+    <em>Vaultak decides</em> what they are allowed to do.
   </h1>
   <p class="hero-sub">
-    Detect anomalies, stop threats, and reverse damage automatically — every action your AI agents take — in real time, across your entire stack.
+    Monitor every action. Enforce every boundary. Reverse every mistake. Without changing a single line of agent code.
   </p>
   <div class="hero-actions">
     <button class="btn-hero-primary" onclick="document.getElementById('hero-email').focus()">
@@ -592,40 +594,226 @@ footer {
     </button>
     <a href="https://docs.vaultak.com" class="btn-hero-secondary" target="_blank">View documentation</a>
   </div>
-
-  <!-- Inline email -->
   <div style="margin-top:40px;display:flex;gap:10px;animation:fadeUp 0.8s ease 0.4s both;flex-wrap:wrap;justify-content:center;">
     <input id="hero-email" type="email" placeholder="Enter your work email"
       style="padding:12px 18px;background:rgba(255,255,255,0.05);border:1px solid var(--border2);border-radius:10px;font-size:14px;font-family:var(--sans);color:#fff;outline:none;width:280px;font-weight:300;" />
     <button class="btn-hero-primary" onclick="handleSignup()">Join waitlist</button>
   </div>
   <p id="hero-msg" style="margin-top:12px;font-size:12px;color:var(--text3);font-weight:300;animation:fadeUp 0.8s ease 0.5s both;">
-    Free 30-day pilot · No credit card required · Personal onboarding
+    Free 30-day pilot &middot; No credit card required &middot; Personal onboarding
   </p>
 </section>
 
-<!-- STATS -->
+<!-- THREAT BAR -->
 <div class="stats-bar">
   <div class="stats-bar-inner">
     <div class="stat-item">
-      <div class="stat-number">65%</div>
-      <div class="stat-desc">of AI agent deployments have zero runtime protection</div>
+      <div class="stat-number" style="font-size:22px;line-height:1.3;color:#f87171;">Your AI deletes<br>production data</div>
+      <div class="stat-desc" style="margin-top:12px;">Rollback reverses it automatically before damage cascades</div>
     </div>
     <div class="stat-item">
-      <div class="stat-number">60%</div>
-      <div class="stat-desc">of agent incidents could be prevented with behavioral monitoring</div>
+      <div class="stat-number" style="font-size:22px;line-height:1.3;color:#f87171;">Your agent leaks<br>API keys</div>
+      <div class="stat-desc" style="margin-top:12px;">Permission profiles block access to credentials before it happens</div>
     </div>
     <div class="stat-item">
-      <div class="stat-number">92%</div>
-      <div class="stat-desc">of developers want a kill switch but none exists in their stack</div>
+      <div class="stat-number" style="font-size:22px;line-height:1.3;color:#f87171;">Your system executes<br>malicious instructions</div>
+      <div class="stat-desc" style="margin-top:12px;">Pre-execution checks stop prompt injection before it runs</div>
     </div>
   </div>
 </div>
 
+<!-- WHAT VAULTAK DOES -->
+<section class="section" id="what">
+  <div class="section-label">What Vaultak does</div>
+  <h2 class="section-heading">Five capabilities.<br><em>Complete</em> governance.</h2>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:0;">
+    <div style="background:var(--bg2);padding:32px 24px;text-align:center;">
+      <div style="font-size:28px;margin-bottom:12px;">&#128065;</div>
+      <div style="font-size:14px;font-weight:500;color:var(--white);margin-bottom:8px;">Monitoring</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6;">Every action intercepted and logged in real time</div>
+    </div>
+    <div style="background:var(--bg2);padding:32px 24px;text-align:center;border-left:1px solid var(--border);">
+      <div style="font-size:28px;margin-bottom:12px;">&#9878;</div>
+      <div style="font-size:14px;font-weight:500;color:var(--white);margin-bottom:8px;">Decision Making</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6;">5-dimensional risk scoring before each action runs</div>
+    </div>
+    <div style="background:var(--bg2);padding:32px 24px;text-align:center;border-left:1px solid var(--border);">
+      <div style="font-size:28px;margin-bottom:12px;">&#128737;</div>
+      <div style="font-size:14px;font-weight:500;color:var(--white);margin-bottom:8px;">Enforcement</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6;">Policy-based blocking before violations occur</div>
+    </div>
+    <div style="background:var(--bg2);padding:32px 24px;text-align:center;border-left:1px solid var(--border);">
+      <div style="font-size:28px;margin-bottom:12px;">&#127963;</div>
+      <div style="font-size:14px;font-weight:500;color:var(--white);margin-bottom:8px;">State Control</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6;">Pause any agent instantly. Resume on your terms.</div>
+    </div>
+    <div style="background:var(--bg2);padding:32px 24px;text-align:center;border-left:1px solid var(--border);">
+      <div style="font-size:28px;margin-bottom:12px;">&#8635;</div>
+      <div style="font-size:14px;font-weight:500;color:var(--white);margin-bottom:8px;">Rollback</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6;">Automatically reverses the last N actions. No other tool does this.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section style="border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg2);">
+  <div style="max-width:1080px;margin:0 auto;padding:96px 48px;">
+    <div class="section-label">Architecture</div>
+    <h2 class="section-heading">How Vaultak sits<br>in your <em>stack.</em></h2>
+    <div style="background:#0d0d0d;border:1px solid var(--border);border-radius:16px;padding:48px;overflow-x:auto;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;min-width:600px;">
+
+        <!-- Agent -->
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:20px 28px;min-width:140px;">
+            <div style="font-size:20px;margin-bottom:8px;">&#129302;</div>
+            <div style="font-size:13px;font-weight:500;color:var(--white);">AI Agent</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;">LangChain &middot; CrewAI<br>AutoGen &middot; Custom</div>
+          </div>
+        </div>
+
+        <!-- Arrow -->
+        <div style="display:flex;flex-direction:column;align-items:center;padding:0 16px;flex-shrink:0;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-family:var(--mono);">every action</div>
+          <div style="color:var(--text3);font-size:20px;">&rarr;</div>
+        </div>
+
+        <!-- Vaultak -->
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:12px;padding:20px 28px;min-width:200px;position:relative;">
+            <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#ffffff;color:#000;font-size:10px;font-weight:600;padding:2px 10px;border-radius:10px;font-family:var(--mono);letter-spacing:.05em;white-space:nowrap;">VAULTAK</div>
+            <div style="font-size:20px;margin-bottom:8px;">&#9670;</div>
+            <div style="font-size:13px;font-weight:500;color:var(--white);margin-bottom:10px;">Policy Engine</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:10px;font-family:var(--mono);color:var(--text3);background:rgba(255,255,255,0.04);padding:4px 8px;border-radius:4px;">Risk Score &lt; 0.7 &rarr; allow</div>
+              <div style="font-size:10px;font-family:var(--mono);color:var(--text3);background:rgba(255,255,255,0.04);padding:4px 8px;border-radius:4px;">blocked_resources &rarr; block</div>
+              <div style="font-size:10px;font-family:var(--mono);color:var(--text3);background:rgba(255,255,255,0.04);padding:4px 8px;border-radius:4px;">violation &rarr; rollback + pause</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Arrow -->
+        <div style="display:flex;flex-direction:column;align-items:center;padding:0 16px;flex-shrink:0;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-family:var(--mono);">if allowed</div>
+          <div style="color:var(--text3);font-size:20px;">&rarr;</div>
+        </div>
+
+        <!-- Systems -->
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:20px 28px;min-width:140px;">
+            <div style="font-size:20px;margin-bottom:8px;">&#128442;</div>
+            <div style="font-size:13px;font-weight:500;color:var(--white);">Your Systems</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;">Files &middot; Databases<br>APIs &middot; Processes</div>
+          </div>
+        </div>
+
+        <!-- Dashboard branch -->
+        <div style="width:100%;margin-top:32px;display:flex;justify-content:center;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <div style="width:1px;height:24px;background:var(--border);"></div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;padding:12px 24px;display:flex;align-items:center;gap:12px;">
+              <div style="font-size:16px;">&#128202;</div>
+              <div>
+                <div style="font-size:12px;font-weight:500;color:var(--white);">Real-time Dashboard</div>
+                <div style="font-size:11px;color:var(--text3);">Every action logged &middot; Full audit trail &middot; Policy management</div>
+              </div>
+              <a href="https://app.vaultak.com" style="font-size:11px;color:var(--text3);text-decoration:none;font-family:var(--mono);">app.vaultak.com &rarr;</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section class="section" id="usecases">
+  <div class="section-label">Real scenarios</div>
+  <h2 class="section-heading">What Vaultak<br><em>prevents.</em></h2>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;transition:all 0.2s;">
+      <div style="font-size:11px;font-family:var(--mono);color:#f87171;letter-spacing:.1em;margin-bottom:16px;">SCENARIO 01</div>
+      <div style="font-size:17px;font-weight:500;color:var(--white);margin-bottom:12px;">Data pipeline agent drifts into production</div>
+      <div style="font-size:13px;color:var(--text3);line-height:1.75;margin-bottom:20px;">An agent processing read-only analytics reports begins exploring the file system and attempts a write to a production database schema.</div>
+      <div style="background:#0d0d0d;border-radius:8px;padding:14px;font-family:var(--mono);font-size:11px;">
+        <div style="color:#f87171;margin-bottom:4px;">&#x2715; database_write on prod.schema</div>
+        <div style="color:#546e7a;margin-bottom:4px;">  risk: 0.91 &middot; outside policy</div>
+        <div style="color:#c3e88d;">&#x2713; Blocked. 3 actions rolled back.</div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;">
+      <div style="font-size:11px;font-family:var(--mono);color:#f87171;letter-spacing:.1em;margin-bottom:16px;">SCENARIO 02</div>
+      <div style="font-size:17px;font-weight:500;color:var(--white);margin-bottom:12px;">Prompt injection targets credentials</div>
+      <div style="font-size:13px;color:var(--text3);line-height:1.75;margin-bottom:20px;">A malicious instruction embedded in a processed document tells the agent to read and exfiltrate the production .env file containing API keys.</div>
+      <div style="background:#0d0d0d;border-radius:8px;padding:14px;font-family:var(--mono);font-size:11px;">
+        <div style="color:#f87171;margin-bottom:4px;">&#x2715; file_read on .env</div>
+        <div style="color:#546e7a;margin-bottom:4px;">  matches blocked pattern: *.env</div>
+        <div style="color:#c3e88d;">&#x2713; Blocked before read. Keys safe.</div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;">
+      <div style="font-size:11px;font-family:var(--mono);color:#f87171;letter-spacing:.1em;margin-bottom:16px;">SCENARIO 03</div>
+      <div style="font-size:17px;font-weight:500;color:var(--white);margin-bottom:12px;">Coding agent modifies production config</div>
+      <div style="font-size:13px;color:var(--text3);line-height:1.75;margin-bottom:20px;">A software engineering agent with file write access reasons that updating a production config file will fix the bug it is tasked with solving.</div>
+      <div style="background:#0d0d0d;border-radius:8px;padding:14px;font-family:var(--mono);font-size:11px;">
+        <div style="color:#f87171;margin-bottom:4px;">&#x2715; file_write on prod.config.yaml</div>
+        <div style="color:#546e7a;margin-bottom:4px;">  risk: 0.84 &middot; exceeds threshold</div>
+        <div style="color:#c3e88d;">&#x2713; Paused. Awaiting human review.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- TRUST -->
+<section style="border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg2);">
+  <div style="max-width:1080px;margin:0 auto;padding:96px 48px;">
+    <div class="section-label">Security and trust</div>
+    <h2 class="section-heading">Built for teams that<br><em>cannot afford</em> to get this wrong.</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:32px;">
+
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--white);margin-bottom:10px;">&#128274; &nbsp;Data you share with Vaultak</div>
+        <div style="font-size:13px;color:var(--text3);line-height:1.8;">Action type &middot; Resource path or hostname &middot; Timestamp &middot; Risk score. Vaultak never reads file contents, environment variable values, or database payloads.</div>
+      </div>
+
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--white);margin-bottom:10px;">&#127968; &nbsp;Infrastructure</div>
+        <div style="font-size:13px;color:var(--text3);line-height:1.8;">Backend hosted on Railway (SOC 2 Type II). Dashboard on Vercel (SOC 2 Type II). Authentication via Clerk (SOC 2 Type II). API keys stored as SHA-256 hashes only.</div>
+      </div>
+
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--white);margin-bottom:10px;">&#128203; &nbsp;Compliance ready</div>
+        <div style="font-size:13px;color:var(--text3);line-height:1.8;">Full audit trail for HIPAA (164.312(b)). Permission profiles satisfy access control requirements. Policy engine addresses SOC 2 CC6.1 and CC7.2. GDPR deletion on request.</div>
+      </div>
+
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--white);margin-bottom:10px;">&#128275; &nbsp;Multi-tenant isolation</div>
+        <div style="font-size:13px;color:var(--text3);line-height:1.8;">Every database query is scoped to your organization ID. Cross-tenant data access is architecturally impossible, not just access-controlled.</div>
+      </div>
+
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--white);margin-bottom:10px;">&#128260; &nbsp;Local enforcement</div>
+        <div style="font-size:13px;color:var(--text3);line-height:1.8;">Permission profiles are enforced locally within the SDK or Sentry daemon before any network call. Blocking works even if the Vaultak backend is unreachable.</div>
+      </div>
+
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--white);margin-bottom:10px;">&#128269; &nbsp;Open to inspection</div>
+        <div style="font-size:13px;color:var(--text3);line-height:1.8;">SDK source is available on GitHub. Security questions answered at security@vaultak.com. White paper available at vaultak.com/whitepaper.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
 <!-- HOW IT WORKS -->
 <section class="section" id="how">
-  <div class="section-label">How it works</div>
-  <h2 class="section-heading">Operational in minutes.<br><em>Control that scales.</em></h2>
+  <div class="section-label">Two ways in</div>
+  <h2 class="section-heading">Operational in minutes.<br><em>No exceptions.</em></h2>
   <div class="steps-grid">
     <div class="step-card">
       <div class="step-index" style="background:rgba(255,255,255,0.08);color:#ffffff;font-size:15px;letter-spacing:.05em;">Core</div>
@@ -767,7 +955,7 @@ footer {
   <div class="footer-inner">
     <div>
       <div class="footer-logo">Vaultak · v0.5.1</div>
-      <div class="footer-tagline">Runtime security for autonomous AI agents.</div>
+      <div class="footer-tagline">The operating system for safe AI agents.</div>
     </div>
     <div class="footer-cols">
       <div class="footer-col">
