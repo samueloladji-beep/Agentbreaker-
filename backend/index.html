@@ -567,7 +567,7 @@ footer {
   <div class="nav-links">
     <a href="#what">What it does</a><a href="#how">How it works</a>
     <a href="#modes">Modes</a>
-    <a href="https://docs.vaultak.com" target="_blank">Docs</a><a href="https://vaultak.com/blog">Blog</a><a href="/#download">Download</a><a href="https://app.vaultak.com" class="nav-btn nav-btn-ghost">Sign in</a>
+    <a href="https://docs.vaultak.com" target="_blank">Docs</a><a href="https://vaultak.com/blog">Blog</a><a href="https://app.vaultak.com" class="nav-btn nav-btn-ghost">Sign in</a>
   </div>
   <div class="nav-right">
     <button class="nav-btn nav-btn-solid" onclick="document.getElementById('hero-email').focus()">Get early access</button>
@@ -845,10 +845,28 @@ footer {
           <div style="font-size:11px;font-family:monospace;color:#ffffff;letter-spacing:.1em;margin-bottom:6px;">VAULTAK CORE</div>
           <div style="font-size:13px;color:#8a8695;line-height:1.6;">pip install vaultak &nbsp;&middot;&nbsp; Five lines of code &nbsp;&middot;&nbsp; Deep integration</div>
         </div>
-        <a href="/#download" style="display:block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;text-decoration:none;">
-          <div style="font-size:11px;font-family:monospace;color:#ffffff;letter-spacing:.1em;margin-bottom:6px;">VAULTAK SENTRY &nbsp;→</div>
-          <div style="font-size:13px;color:#8a8695;line-height:1.6;">Desktop app &nbsp;&middot;&nbsp; Zero code changes &nbsp;&middot;&nbsp; Any language &nbsp;&middot;&nbsp; Mac / Windows / Linux</div>
-        </a>
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:16px 18px;">
+          <div style="font-size:11px;font-family:monospace;color:#ffffff;letter-spacing:.1em;margin-bottom:14px;">VAULTAK SENTRY — DESKTOP APP</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+            <a href="https://github.com/samueloladji-beep/Vaultak/releases/latest/download/VaultakSentry-1.0.0-arm64.pkg"
+               style="display:block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px 14px;text-decoration:none;text-align:center;">
+              <div style="font-size:13px;font-weight:600;color:#ffffff;margin-bottom:6px;">macOS</div>
+              <div style="font-size:11px;color:#8a8695;">Download .pkg</div>
+            </a>
+            <a href="https://github.com/samueloladji-beep/Vaultak/releases/latest/download/VaultakSentry-1.0.0-windows.zip"
+               style="display:block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px 14px;text-decoration:none;text-align:center;position:relative;">
+              <div style="font-size:13px;font-weight:600;color:#ffffff;margin-bottom:6px;">Windows</div>
+              <div style="font-size:11px;color:#8a8695;">Download .zip</div>
+              <div style="position:absolute;top:6px;right:6px;font-size:9px;font-weight:600;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:3px;padding:1px 5px;">BETA</div>
+            </a>
+            <a href="https://github.com/samueloladji-beep/Vaultak/releases/latest/download/VaultakSentry-1.0.0-linux.tar.gz"
+               style="display:block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px 14px;text-decoration:none;text-align:center;position:relative;">
+              <div style="font-size:13px;font-weight:600;color:#ffffff;margin-bottom:6px;">Linux</div>
+              <div style="font-size:11px;color:#8a8695;">Download .tar.gz</div>
+              <div style="position:absolute;top:6px;right:6px;font-size:9px;font-weight:600;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:3px;padding:1px 5px;">BETA</div>
+            </a>
+          </div>
+        </div>
       </div>
     </div>
     <div class="code-window">
@@ -937,53 +955,6 @@ footer {
 </section>
 
 
-<!-- DOWNLOAD -->
-<section class="section" id="download" style="border-top: 1px solid var(--border);">
-  <div class="section-label">Desktop App</div>
-  <h2 class="section-heading">Vaultak Sentry.<br><em>Zero-code</em> agent monitoring.</h2>
-  <p class="section-sub" style="max-width:560px;margin:0 auto 48px;">Install Sentry on your machine and monitor any AI agent with no code changes. Connects to your Vaultak dashboard automatically.</p>
-
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:860px;margin:0 auto 32px;">
-
-    <a href="https://github.com/samueloladji-beep/Vaultak/releases/latest/download/VaultakSentry-1.0.0-arm64.pkg"
-       style="display:block;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px 24px;text-decoration:none;transition:border-color .2s;"
-       onmouseover="this.style.borderColor='rgba(255,255,255,0.2)'"
-       onmouseout="this.style.borderColor='var(--border)'">
-      
-      <div style="font-size:15px;font-weight:700;color:#ffffff;margin-bottom:16px;">macOS</div>
-      
-      <div style="font-size:12px;font-weight:600;color:#ffffff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:8px 14px;display:inline-block;">Download .pkg</div>
-    </a>
-
-    <a href="https://github.com/samueloladji-beep/Vaultak/releases/latest/download/VaultakSentry-1.0.0-windows.zip"
-       style="display:block;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px 24px;text-decoration:none;transition:border-color .2s;position:relative;"
-       onmouseover="this.style.borderColor='rgba(255,255,255,0.2)'"
-       onmouseout="this.style.borderColor='var(--border)'">
-      
-      <div style="font-size:15px;font-weight:700;color:#ffffff;margin-bottom:16px;">Windows</div>
-      
-      <div style="font-size:12px;font-weight:600;color:#ffffff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:8px 14px;display:inline-block;">Download .zip</div>
-      <div style="position:absolute;top:12px;right:12px;font-size:10px;font-weight:600;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:4px;padding:2px 8px;">BETA</div>
-    </a>
-
-    <a href="https://github.com/samueloladji-beep/Vaultak/releases/latest/download/VaultakSentry-1.0.0-linux.tar.gz"
-       style="display:block;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px 24px;text-decoration:none;transition:border-color .2s;position:relative;"
-       onmouseover="this.style.borderColor='rgba(255,255,255,0.2)'"
-       onmouseout="this.style.borderColor='var(--border)'">
-      
-      <div style="font-size:15px;font-weight:700;color:#ffffff;margin-bottom:16px;">Linux</div>
-      
-      <div style="font-size:12px;font-weight:600;color:#ffffff;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:8px 14px;display:inline-block;">Download .tar.gz</div>
-      <div style="position:absolute;top:12px;right:12px;font-size:10px;font-weight:600;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:4px;padding:2px 8px;">BETA</div>
-    </a>
-
-  </div>
-
-  <p style="text-align:center;font-size:12px;color:var(--text3);">
-    Prefer the SDK? <a href="https://docs.vaultak.com/quickstart" style="color:var(--text2);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.15);">pip install vaultak</a> &nbsp;·&nbsp;
-    <a href="https://github.com/samueloladji-beep/Vaultak/releases" style="color:var(--text2);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.15);">All releases on GitHub →</a>
-  </p>
-</section>
 
 <!-- CTA -->
 <section class="cta-section" style="border-top: 1px solid var(--border);">
