@@ -305,7 +305,6 @@ def hash_key(key):
 def get_org(x_api_key: Optional[str] = Header(None), db=Depends(get_db)):
     if not x_api_key:
         raise HTTPException(status_code=401, detail="Missing API key")
-    check_rate_limit(x_api_key)
     try:
         with db.cursor() as cur:
             cur.execute("UPDATE api_keys SET last_used = NOW() WHERE key_hash = %s RETURNING org_id", (hash_key(x_api_key),))
