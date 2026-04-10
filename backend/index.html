@@ -839,34 +839,48 @@ footer {
     <div class="code-left">
       <div class="section-label">Integration</div>
       <h2 class="section-heading" style="max-width:440px;">Two ways in.<br><em>Zero</em> compromise.</h2>
-      <p class="code-desc">Use Vaultak Core for deep SDK integration or Vaultak Sentry for zero-code deployment. Both connect to the same dashboard.</p>
-      <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
-        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 18px;">
-          <div style="font-size:11px;font-family:monospace;color:#ffffff;letter-spacing:.1em;margin-bottom:6px;">VAULTAK CORE</div>
-          <div style="font-size:13px;color:#8a8695;line-height:1.6;">pip install vaultak &nbsp;&middot;&nbsp; Five lines of code &nbsp;&middot;&nbsp; Deep integration</div>
-        </div>
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:16px 18px;">
-          <div style="font-size:11px;font-family:monospace;color:#ffffff;letter-spacing:.1em;margin-bottom:14px;">VAULTAK SENTRY — DESKTOP APP</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+      <p class="code-desc">Both connect to the same dashboard. Pick the one that fits your workflow.</p>
+      <div style="display:flex;flex-direction:column;gap:16px;margin-top:24px;">
+
+        <!-- Sentry Card -->
+        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:20px 20px 16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:11px;font-family:monospace;color:#ffffff;letter-spacing:.1em;">VAULTAK SENTRY</div>
+            <div style="font-size:10px;color:#8a8695;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:2px 8px;">DESKTOP APP</div>
+          </div>
+          <div style="font-size:13px;color:#8a8695;line-height:1.6;margin-bottom:14px;">No code changes. Download and monitor any agent instantly. Works with any language or framework.</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
             <a href="https://github.com/samueloladji-beep/Vaultak/releases/latest/download/VaultakSentry-1.0.0-arm64.pkg"
-               style="display:block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px 14px;text-decoration:none;text-align:center;">
-              <div style="font-size:13px;font-weight:600;color:#ffffff;margin-bottom:6px;">macOS</div>
-              <div style="font-size:11px;color:#8a8695;">Download .pkg</div>
+               style="display:block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:10px;text-decoration:none;text-align:center;">
+              <div style="font-size:12px;font-weight:600;color:#ffffff;margin-bottom:3px;">macOS</div>
+              <div style="font-size:10px;color:#8a8695;">.pkg</div>
             </a>
             <a href="https://github.com/samueloladji-beep/Vaultak/releases/latest/download/VaultakSentry-1.0.0-windows.zip"
-               style="display:block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px 14px;text-decoration:none;text-align:center;position:relative;">
-              <div style="font-size:13px;font-weight:600;color:#ffffff;margin-bottom:6px;">Windows</div>
-              <div style="font-size:11px;color:#8a8695;">Download .zip</div>
-              <div style="position:absolute;top:6px;right:6px;font-size:9px;font-weight:600;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:3px;padding:1px 5px;">BETA</div>
+               style="display:block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:10px;text-decoration:none;text-align:center;position:relative;">
+              <div style="font-size:12px;font-weight:600;color:#ffffff;margin-bottom:3px;">Windows</div>
+              <div style="font-size:10px;color:#8a8695;">.zip</div>
+              <div style="position:absolute;top:4px;right:4px;font-size:8px;color:#f59e0b;">BETA</div>
             </a>
             <a href="https://github.com/samueloladji-beep/Vaultak/releases/latest/download/VaultakSentry-1.0.0-linux.tar.gz"
-               style="display:block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px 14px;text-decoration:none;text-align:center;position:relative;">
-              <div style="font-size:13px;font-weight:600;color:#ffffff;margin-bottom:6px;">Linux</div>
-              <div style="font-size:11px;color:#8a8695;">Download .tar.gz</div>
-              <div style="position:absolute;top:6px;right:6px;font-size:9px;font-weight:600;color:#f59e0b;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:3px;padding:1px 5px;">BETA</div>
+               style="display:block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:10px;text-decoration:none;text-align:center;position:relative;">
+              <div style="font-size:12px;font-weight:600;color:#ffffff;margin-bottom:3px;">Linux</div>
+              <div style="font-size:10px;color:#8a8695;">.tar.gz</div>
+              <div style="position:absolute;top:4px;right:4px;font-size:8px;color:#f59e0b;">BETA</div>
             </a>
           </div>
         </div>
+
+        <!-- Core Card -->
+        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:20px 20px 16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-size:11px;font-family:monospace;color:#ffffff;letter-spacing:.1em;">VAULTAK CORE</div>
+            <div style="font-size:10px;color:#8a8695;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:2px 8px;">SDK</div>
+          </div>
+          <div style="font-size:13px;color:#8a8695;line-height:1.6;margin-bottom:14px;">Five lines of code. Deep integration with custom rollback callbacks and full programmatic control.</div>
+          <div style="font-family:monospace;font-size:12px;color:#a89fe0;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);border-radius:7px;padding:10px 14px;">pip install vaultak</div>
+        </div>
+
+
       </div>
     </div>
     <div class="code-window">
