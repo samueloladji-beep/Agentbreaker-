@@ -1,0 +1,222 @@
+name: Build Vaultak Sentry
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sentry-app/**'
+  workflow_dispatch:
+
+jobs:
+  build-macos-arm:
+    name: macOS (Apple Silicon)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd sentry-app
+          pip install pyinstaller requests
+          brew install python-tk@3.11 || true
+
+      - name: Build
+        run: |
+          cd sentry-app
+          python -m PyInstaller \
+            --name "Vaultak Sentry" \
+            --windowed \
+            --onedir \
+            --noconfirm \
+            --icon "assets/icon.icns" \
+            --add-data "assets:assets" \
+            --hidden-import "tkinter" \
+            --hidden-import "requests" \
+            --osx-bundle-identifier "com.vaultak.sentry" \
+            vaultak_sentry_app.py
+
+      - name: Package .pkg
+        run: |
+          cd sentry-app
+          mkdir -p pkg_root/Applications
+          cp -r "dist/Vaultak Sentry.app" "pkg_root/Applications/"
+          pkgbuild \
+            --root pkg_root \
+            --identifier com.vaultak.sentry \
+            --version 1.0.0 \
+            --install-location / \
+            "dist/VaultakSentry-1.0.0-arm64.pkg"
+          rm -rf pkg_root
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VaultakSentry-macOS-arm64
+          path: sentry-app/dist/VaultakSentry-1.0.0-arm64.pkg
+
+  build-macos-intel:
+    name: macOS (Intel)
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd sentry-app
+          pip install pyinstaller requests
+          brew install python-tk@3.11 || true
+
+      - name: Build
+        run: |
+          cd sentry-app
+          python -m PyInstaller \
+            --name "Vaultak Sentry" \
+            --windowed \
+            --onedir \
+            --noconfirm \
+            --icon "assets/icon.icns" \
+            --add-data "assets:assets" \
+            --hidden-import "tkinter" \
+            --hidden-import "requests" \
+            --osx-bundle-identifier "com.vaultak.sentry" \
+            vaultak_sentry_app.py
+
+      - name: Package .pkg
+        run: |
+          cd sentry-app
+          mkdir -p pkg_root/Applications
+          cp -r "dist/Vaultak Sentry.app" "pkg_root/Applications/"
+          pkgbuild \
+            --root pkg_root \
+            --identifier com.vaultak.sentry \
+            --version 1.0.0 \
+            --install-location / \
+            "dist/VaultakSentry-1.0.0-x86_64.pkg"
+          rm -rf pkg_root
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VaultakSentry-macOS-intel
+          path: sentry-app/dist/VaultakSentry-1.0.0-x86_64.pkg
+
+  build-windows:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd sentry-app
+          pip install pyinstaller requests
+
+      - name: Build
+        run: |
+          cd sentry-app
+          python -m PyInstaller `
+            --name "Vaultak Sentry" `
+            --windowed `
+            --onedir `
+            --noconfirm `
+            --icon "assets/icon.icns" `
+            --add-data "assets;assets" `
+            --hidden-import "tkinter" `
+            --hidden-import "requests" `
+            vaultak_sentry_app.py
+
+      - name: Zip output
+        run: |
+          cd sentry-app/dist
+          Compress-Archive -Path "Vaultak Sentry" -DestinationPath "VaultakSentry-1.0.0-windows.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VaultakSentry-windows
+          path: sentry-app/dist/VaultakSentry-1.0.0-windows.zip
+
+  build-linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+          cd sentry-app
+          pip install pyinstaller requests
+
+      - name: Build
+        run: |
+          cd sentry-app
+          python -m PyInstaller \
+            --name "Vaultak Sentry" \
+            --windowed \
+            --onedir \
+            --noconfirm \
+            --add-data "assets:assets" \
+            --hidden-import "tkinter" \
+            --hidden-import "requests" \
+            vaultak_sentry_app.py
+
+      - name: Tar output
+        run: |
+          cd sentry-app/dist
+          tar -czf VaultakSentry-1.0.0-linux.tar.gz "Vaultak Sentry"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VaultakSentry-linux
+          path: sentry-app/dist/VaultakSentry-1.0.0-linux.tar.gz
+
+  release:
+    name: Create Release
+    needs: [build-macos-arm, build-macos-intel, build-windows, build-linux]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: Vaultak Sentry v1.0.0
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/VaultakSentry-macOS-arm64/*.pkg
+            artifacts/VaultakSentry-macOS-intel/*.pkg
+            artifacts/VaultakSentry-windows/*.zip
+            artifacts/VaultakSentry-linux/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
