@@ -1,4 +1,19 @@
 import os, json, hashlib, secrets, time, logging
+
+# Vaultak security modules
+try:
+    from vaultak_pii import PIIMasker, PIIType
+    HAS_PII = True
+except ImportError:
+    HAS_PII = False
+
+try:
+    from vaultak_siem import SIEMRouter, normalize_event
+    _siem_router = SIEMRouter.from_env()
+    HAS_SIEM = True
+except ImportError:
+    HAS_SIEM = False
+    _siem_router = None
 from typing import Any, Dict, Optional, List
 from datetime import datetime, timezone
 import psycopg
@@ -467,6 +482,23 @@ def log_action(body: ActionLog, org_id: str = Depends(get_org), db=Depends(get_d
                 """, (org_id, body.agent_id, [action_id], "auto-rollback: critical risk score", "system"))
 
             db.commit()
+
+        # Emit to SIEM if configured
+        if HAS_SIEM and _siem_router:
+            try:
+                _siem_router.route({
+                    "agent_id":    body.agent_id,
+                    "action_type": body.action_type,
+                    "resource":    body.resource,
+                    "risk_score":  final_score,
+                    "decision":    "flag" if flagged else "allow",
+                    "reason":      flag_reason or "",
+                    "mode":        body.kill_switch_mode,
+                    "session_id":  body.session_id,
+                    "org_id":      org_id,
+                })
+            except Exception:
+                pass
 
         return {
             "logged": True,
@@ -1397,6 +1429,93 @@ def whitepaper():
 def serve_favicon():
     favicon_path = os.path.join(os.path.dirname(__file__), "favicon.svg")
     return FileResponse(favicon_path, media_type="image/svg+xml")
+
+# ─── PII Masking Endpoints ───────────────────────────────────────────────────
+
+class PIIMaskRequest(BaseModel):
+    text: str
+    strategy: Optional[str] = "partial"
+    disabled_types: Optional[List[str]] = []
+
+@app.post("/api/pii/mask")
+def mask_pii(body: PIIMaskRequest, org_id: str = Depends(get_org)):
+    """Mask PII in text before it reaches an agent or is returned to a user."""
+    if not HAS_PII:
+        raise HTTPException(status_code=503, detail="PII module not available")
+    if not body.text:
+        raise HTTPException(status_code=400, detail="text is required")
+    try:
+        disabled = []
+        for t in (body.disabled_types or []):
+            try:
+                disabled.append(PIIType(t))
+            except ValueError:
+                pass
+        masker = PIIMasker(strategy=body.strategy or "partial", disabled_types=disabled)
+        result = masker.mask(body.text)
+        return {
+            "masked":      result.masked,
+            "pii_found":   result.pii_found,
+            "risk_score":  result.risk_score,
+            "detections": [
+                {"type": m.pii_type.value, "confidence": m.confidence}
+                for m in result.matches
+            ],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/pii/scan")
+def scan_pii(body: PIIMaskRequest, org_id: str = Depends(get_org)):
+    """Scan text for PII without masking. Returns detection report only."""
+    if not HAS_PII:
+        raise HTTPException(status_code=503, detail="PII module not available")
+    try:
+        masker = PIIMasker()
+        result = masker.mask(body.text or "")
+        return {
+            "pii_found":  result.pii_found,
+            "risk_score": result.risk_score,
+            "count":      len(result.matches),
+            "types":      list(set(m.pii_type.value for m in result.matches)),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ─── SIEM Endpoints ───────────────────────────────────────────────────────────
+
+class SIEMWebhookConfig(BaseModel):
+    url: str
+    secret: Optional[str] = None
+    headers: Optional[Dict[str, str]] = None
+
+@app.get("/api/siem/status")
+def siem_status(org_id: str = Depends(get_org)):
+    """Return SIEM router status and connector stats."""
+    if not HAS_SIEM or not _siem_router:
+        return {"enabled": False, "connectors": []}
+    return {
+        "enabled":    True,
+        "connectors": [c.name for c in _siem_router.connectors],
+        "stats":      _siem_router.stats(),
+    }
+
+@app.post("/api/siem/test")
+def siem_test(org_id: str = Depends(get_org)):
+    """Send a test event to all configured SIEM connectors."""
+    if not HAS_SIEM or not _siem_router:
+        raise HTTPException(status_code=503, detail="No SIEM connectors configured")
+    test_event = {
+        "agent_id":    "test-agent",
+        "action_type": "siem_test",
+        "resource":    "vaultak.siem.test",
+        "risk_score":  0.1,
+        "decision":    "allow",
+        "reason":      "SIEM connectivity test",
+        "org_id":      org_id,
+    }
+    _siem_router.route(test_event)
+    return {"sent": True, "connectors": len(_siem_router.connectors)}
 
 # ─── Policy Engine ─────────────────────────────────────────────────────────────
 
