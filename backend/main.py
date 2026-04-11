@@ -1369,30 +1369,24 @@ def pricing_page():
 
     <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:28px 32px;margin-bottom:48px;">
       <div style="font-size:11px;font-family:monospace;color:#555;letter-spacing:.1em;margin-bottom:16px;">HOW VAULTAK COMPARES</div>
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:0;font-size:13px;">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:0;font-size:13px;">
         <div style="color:#555;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">Capability</div>
         <div style="color:#fff;font-weight:600;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center;">Vaultak</div>
-        <div style="color:#555;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center;">NeuralTrust</div>
         <div style="color:#555;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center;">Others</div>
         <div style="color:#8a8695;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">Transparent pricing</div>
         <div style="color:#4ade80;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">Yes</div>
         <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">No</div>
-        <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">No</div>
         <div style="color:#8a8695;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">Self-serve signup</div>
         <div style="color:#4ade80;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">Yes</div>
-        <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">Demo required</div>
         <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">Demo required</div>
         <div style="color:#8a8695;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">Automatic rollback</div>
         <div style="color:#4ade80;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">Yes</div>
         <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">No</div>
-        <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">No</div>
         <div style="color:#8a8695;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">Zero-code daemon</div>
         <div style="color:#4ade80;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">Yes</div>
         <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">No</div>
-        <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">No</div>
         <div style="color:#8a8695;padding:8px 0;">Starting price</div>
         <div style="color:#4ade80;padding:8px 12px;text-align:center;">$0 free</div>
-        <div style="color:#555;padding:8px 12px;text-align:center;">$50K+/year</div>
         <div style="color:#555;padding:8px 12px;text-align:center;">$50K+/year</div>
       </div>
     </div>
@@ -1416,8 +1410,8 @@ def pricing_page():
         <div class="faq-a">You will be notified at 80% of your limit. If you exceed it, monitoring continues and you will be prompted to upgrade. We never silently drop events.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">Why is Vaultak so much cheaper than NeuralTrust?</div>
-        <div class="faq-a">NeuralTrust and similar platforms are built for enterprise procurement cycles with long sales processes and six-figure annual commitments. Vaultak is built for developers and security teams who need governance now, not after a 90-day sales cycle. You get the same runtime security capabilities at a fraction of the cost.</div>
+        <div class="faq-q">Why is Vaultak so much cheaper than enterprise alternatives?</div>
+        <div class="faq-a">Most enterprise AI security platforms are built for long procurement cycles with six-figure annual commitments. Vaultak is built for developers and security teams who need governance now, not after a 90-day sales cycle. You get the same runtime security capabilities at a fraction of the cost.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q">Is on-premises deployment available?</div>
