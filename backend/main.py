@@ -1267,7 +1267,7 @@ def pricing_page():
     .faq-item{border-bottom:1px solid rgba(255,255,255,0.07);padding:20px 0}
     .faq-q{font-size:15px;font-weight:500;color:#fff;margin-bottom:8px}
     .faq-a{font-size:14px;color:#8a8695;line-height:1.7}
-    @media(max-width:768px){.plans{grid-template-columns:1fr}}
+    @media(max-width:1100px){.plans{grid-template-columns:repeat(2,1fr) !important}} @media(max-width:640px){.plans{grid-template-columns:1fr !important}}
   </style>
 </head>
 <body>
@@ -1278,52 +1278,122 @@ def pricing_page():
     <h1>Simple, transparent pricing</h1>
     <p class="subtitle">Start free. Scale as your agents do.</p>
 
-    <div class="plans">
+    <p style="text-align:center;font-size:13px;color:#555;margin-bottom:40px;font-style:italic;">Every competitor charges enterprise contract pricing starting at $50,000/year.<br>Vaultak is the only AI agent security platform with transparent self-serve pricing.</p>
+
+    <div class="plans" style="grid-template-columns:repeat(5,1fr);gap:12px;">
+
       <div class="plan">
         <div class="plan-name">Starter</div>
-        <div class="plan-price">$0<span>/mo</span></div>
-        <div class="plan-desc">For individual developers and small projects.</div>
+        <div class="plan-price" style="font-size:30px;">$0<span>/mo</span></div>
+        <div class="plan-desc">For developers evaluating or building.</div>
         <ul class="plan-features">
-          <li><span class="check">✓</span> Up to 3 agents</li>
-          <li><span class="check">✓</span> 10,000 actions/month</li>
-          <li><span class="check">✓</span> 7-day audit log retention</li>
-          <li><span class="check">✓</span> ALERT mode</li>
-          <li><span class="check">✓</span> Community support</li>
+          <li><span class="check">&#10003;</span> Up to 3 agents</li>
+          <li><span class="check">&#10003;</span> 10,000 actions/mo</li>
+          <li><span class="check">&#10003;</span> 7-day audit log</li>
+          <li><span class="check">&#10003;</span> ALERT mode</li>
+          <li><span class="check">&#10003;</span> Dashboard access</li>
+          <li><span class="check">&#10003;</span> Community support</li>
         </ul>
         <a href="https://app.vaultak.com" class="plan-btn plan-btn-outline">Get started free</a>
       </div>
 
+      <div class="plan">
+        <div class="plan-name">Pro</div>
+        <div class="plan-price" style="font-size:30px;">$49<span>/mo</span></div>
+        <div class="plan-desc">For developers running agents in production.</div>
+        <ul class="plan-features">
+          <li><span class="check">&#10003;</span> Unlimited agents</li>
+          <li><span class="check">&#10003;</span> 500,000 actions/mo</li>
+          <li><span class="check">&#10003;</span> 90-day audit log</li>
+          <li><span class="check">&#10003;</span> ALERT, PAUSE, ROLLBACK</li>
+          <li><span class="check">&#10003;</span> Permission profiles</li>
+          <li><span class="check">&#10003;</span> Security policies</li>
+          <li><span class="check">&#10003;</span> Email support</li>
+        </ul>
+        <a href="https://app.vaultak.com" class="plan-btn plan-btn-outline">Start free trial</a>
+      </div>
+
       <div class="plan featured">
         <div class="plan-badge">Most popular</div>
-        <div class="plan-name">Pro</div>
-        <div class="plan-price">$49<span>/mo</span></div>
-        <div class="plan-desc">For teams running agents in production.</div>
+        <div class="plan-name">Team</div>
+        <div class="plan-price" style="font-size:30px;">$99<span>/mo</span></div>
+        <div class="plan-desc">For teams of 3 to 10 with multiple agents.</div>
         <ul class="plan-features">
-          <li><span class="check">✓</span> Unlimited agents</li>
-          <li><span class="check">✓</span> 500,000 actions/month</li>
-          <li><span class="check">✓</span> 90-day audit log retention</li>
-          <li><span class="check">✓</span> ALERT, PAUSE & ROLLBACK modes</li>
-          <li><span class="check">✓</span> Security policies</li>
-          <li><span class="check">✓</span> Permission profiles</li>
-          <li><span class="check">✓</span> Email support</li>
+          <li><span class="check">&#10003;</span> Everything in Pro</li>
+          <li><span class="check">&#10003;</span> 2,000,000 actions/mo</li>
+          <li><span class="check">&#10003;</span> 1-year audit log</li>
+          <li><span class="check">&#10003;</span> PII masking</li>
+          <li><span class="check">&#10003;</span> MCP gateway</li>
+          <li><span class="check">&#10003;</span> Red teaming</li>
+          <li><span class="check">&#10003;</span> Up to 10 seats</li>
+          <li><span class="check">&#10003;</span> Priority support</li>
         </ul>
         <a href="https://app.vaultak.com" class="plan-btn plan-btn-light">Start free trial</a>
       </div>
 
       <div class="plan">
-        <div class="plan-name">Enterprise</div>
-        <div class="plan-price">Custom</div>
-        <div class="plan-desc">For organizations with advanced security requirements.</div>
+        <div class="plan-name">Business</div>
+        <div class="plan-price" style="font-size:30px;">$299<span>/mo</span></div>
+        <div class="plan-desc">For companies with compliance requirements.</div>
         <ul class="plan-features">
-          <li><span class="check">✓</span> Everything in Pro</li>
-          <li><span class="check">✓</span> Unlimited actions</li>
-          <li><span class="check">✓</span> 1-year audit log retention</li>
-          <li><span class="check">✓</span> SSO / SAML</li>
-          <li><span class="check">✓</span> Custom SLA</li>
-          <li><span class="check">✓</span> Security review & DPA</li>
-          <li><span class="check">✓</span> Dedicated support</li>
+          <li><span class="check">&#10003;</span> Everything in Team</li>
+          <li><span class="check">&#10003;</span> Unlimited actions</li>
+          <li><span class="check">&#10003;</span> SIEM integration</li>
+          <li><span class="check">&#10003;</span> Shadow AI detection</li>
+          <li><span class="check">&#10003;</span> HIPAA &amp; SOC 2 audit trail</li>
+          <li><span class="check">&#10003;</span> Unlimited seats</li>
+          <li><span class="check">&#10003;</span> Slack alerts</li>
+          <li><span class="check">&#10003;</span> SLA guarantee</li>
+        </ul>
+        <a href="https://app.vaultak.com" class="plan-btn plan-btn-outline">Start free trial</a>
+      </div>
+
+      <div class="plan">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price" style="font-size:24px;">From $999<span>/mo</span></div>
+        <div class="plan-desc">For large orgs with advanced security needs.</div>
+        <ul class="plan-features">
+          <li><span class="check">&#10003;</span> Everything in Business</li>
+          <li><span class="check">&#10003;</span> On-premises deployment</li>
+          <li><span class="check">&#10003;</span> SSO / SAML</li>
+          <li><span class="check">&#10003;</span> Custom SLA</li>
+          <li><span class="check">&#10003;</span> Security review &amp; DPA</li>
+          <li><span class="check">&#10003;</span> PagerDuty integration</li>
+          <li><span class="check">&#10003;</span> Dedicated support</li>
+          <li><span class="check">&#10003;</span> Custom contract</li>
         </ul>
         <a href="mailto:sales@vaultak.com" class="plan-btn plan-btn-outline">Contact sales</a>
+      </div>
+
+    </div>
+
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:28px 32px;margin-bottom:48px;">
+      <div style="font-size:11px;font-family:monospace;color:#555;letter-spacing:.1em;margin-bottom:16px;">HOW VAULTAK COMPARES</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:0;font-size:13px;">
+        <div style="color:#555;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">Capability</div>
+        <div style="color:#fff;font-weight:600;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center;">Vaultak</div>
+        <div style="color:#555;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center;">NeuralTrust</div>
+        <div style="color:#555;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center;">Others</div>
+        <div style="color:#8a8695;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">Transparent pricing</div>
+        <div style="color:#4ade80;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">Yes</div>
+        <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">No</div>
+        <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">No</div>
+        <div style="color:#8a8695;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">Self-serve signup</div>
+        <div style="color:#4ade80;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">Yes</div>
+        <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">Demo required</div>
+        <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">Demo required</div>
+        <div style="color:#8a8695;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">Automatic rollback</div>
+        <div style="color:#4ade80;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">Yes</div>
+        <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">No</div>
+        <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">No</div>
+        <div style="color:#8a8695;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">Zero-code daemon</div>
+        <div style="color:#4ade80;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">Yes</div>
+        <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">No</div>
+        <div style="color:#f87171;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:center;">No</div>
+        <div style="color:#8a8695;padding:8px 0;">Starting price</div>
+        <div style="color:#4ade80;padding:8px 12px;text-align:center;">$0 free</div>
+        <div style="color:#555;padding:8px 12px;text-align:center;">$50K+/year</div>
+        <div style="color:#555;padding:8px 12px;text-align:center;">$50K+/year</div>
       </div>
     </div>
 
@@ -1331,19 +1401,27 @@ def pricing_page():
       <h2>Frequently asked questions</h2>
       <div class="faq-item">
         <div class="faq-q">What counts as an action?</div>
-        <div class="faq-a">An action is any event logged by a Vaultak-monitored agent — a file write, API call, database query, etc. Each call to vt.monitor() or vt.log_action() counts as one action.</div>
+        <div class="faq-a">An action is any event logged by a Vaultak-monitored agent — a file write, API call, database query, and so on. Each event intercepted by Vaultak Core or Vaultak Sentry counts as one action.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q">Can I upgrade or downgrade at any time?</div>
-        <div class="faq-a">Yes. You can change your plan at any time. Upgrades take effect immediately. Downgrades take effect at the start of the next billing cycle.</div>
+        <div class="faq-a">Yes. Upgrades take effect immediately. Downgrades take effect at the start of the next billing cycle.</div>
       </div>
       <div class="faq-item">
-        <div class="faq-q">Do you offer a free trial for Pro?</div>
-        <div class="faq-a">Yes — Pro includes a 14-day free trial, no credit card required.</div>
+        <div class="faq-q">Do paid plans include a free trial?</div>
+        <div class="faq-a">Yes. Pro, Team, and Business all include a 14-day free trial with no credit card required.</div>
       </div>
       <div class="faq-item">
         <div class="faq-q">What happens if I exceed my action limit?</div>
-        <div class="faq-a">We'll notify you when you reach 80% of your limit. If you exceed it, monitoring continues but you'll be prompted to upgrade. We never silently drop events.</div>
+        <div class="faq-a">You will be notified at 80% of your limit. If you exceed it, monitoring continues and you will be prompted to upgrade. We never silently drop events.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why is Vaultak so much cheaper than NeuralTrust?</div>
+        <div class="faq-a">NeuralTrust and similar platforms are built for enterprise procurement cycles with long sales processes and six-figure annual commitments. Vaultak is built for developers and security teams who need governance now, not after a 90-day sales cycle. You get the same runtime security capabilities at a fraction of the cost.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Is on-premises deployment available?</div>
+        <div class="faq-a">Yes. On-premises deployment via Docker Compose or Kubernetes is available on the Enterprise plan. Your data never leaves your infrastructure.</div>
       </div>
     </div>
   </div>
