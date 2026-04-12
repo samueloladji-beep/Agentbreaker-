@@ -1330,7 +1330,7 @@ def pricing_page():
           <li><span class="check">&#10003;</span> Policy engine</li>
           <li><span class="check">&#10003;</span> Email support</li>
         </ul>
-        <a href="https://app.vaultak.com" class="plan-btn plan-btn-outline">Get started</a>
+        <a href="https://app.vaultak.com?view=billing" class="plan-btn plan-btn-outline">Get started</a>
       </div>
 
       <div class="plan featured">
@@ -1346,7 +1346,7 @@ def pricing_page():
           <li><span class="check">&#10003;</span> PII masking</li>
           <li><span class="check">&#10003;</span> Priority support</li>
         </ul>
-        <a href="https://app.vaultak.com" class="plan-btn plan-btn-light">Get started</a>
+        <a href="https://app.vaultak.com?view=billing" class="plan-btn plan-btn-light">Get started</a>
       </div>
 
       <div class="plan">
@@ -1362,7 +1362,7 @@ def pricing_page():
           <li><span class="check">&#10003;</span> Shadow AI detection</li>
           <li><span class="check">&#10003;</span> SLA guarantee</li>
         </ul>
-        <a href="https://app.vaultak.com" class="plan-btn plan-btn-outline">Get started</a>
+        <a href="https://app.vaultak.com?view=billing" class="plan-btn plan-btn-outline">Get started</a>
       </div>
 
       <div class="plan">
