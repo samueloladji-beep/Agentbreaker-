@@ -1972,3 +1972,126 @@ def delete_policy(policy_id: str, org_id: str = Depends(get_org), db=Depends(get
         cur.execute("DELETE FROM policies WHERE id = %s AND org_id = %s", (policy_id, org_id))
         db.commit()
     return {"deleted": True}
+
+
+# ─── MCP HTTP Endpoint (Smithery / Remote MCP) ────────────────────────────────
+
+from fastapi.responses import StreamingResponse
+import asyncio
+
+MCP_TOOLS = [
+    {
+        "name": "vaultak_risk_score",
+        "description": "Score an AI agent's risk level across 5 security dimensions: action type, resource sensitivity, blast radius, behavioral deviation, and time pattern. Returns a 0-100 composite score, risk tier (LOW/MODERATE/HIGH/CRITICAL), per-dimension breakdown, and Vaultak policy recommendations.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "agent_description": {"type": "string", "description": "What the agent does — its purpose, workflow, and behaviors."},
+                "capabilities": {"type": "array", "items": {"type": "string"}, "description": "List of tools/capabilities the agent has access to."}
+            },
+            "required": ["agent_description"]
+        }
+    },
+    {
+        "name": "vaultak_policy_check",
+        "description": "Check whether a specific agent action should be ALLOWED or BLOCKED based on Vaultak's policy engine. Evaluates action/resource pairs against policies using priority-based matching.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "description": "The action the agent wants to perform (delete, write, execute, send_email...)."},
+                "resource": {"type": "string", "description": "The resource being acted upon (production_db, s3://bucket/, smtp_server...)."},
+                "policies": {"type": "array", "items": {"type": "object"}, "description": "List of Vaultak policy objects to evaluate against.", "default": []}
+            },
+            "required": ["action", "resource"]
+        }
+    },
+    {
+        "name": "vaultak_get_policy_templates",
+        "description": "Get ready-to-use Vaultak policy templates for common AI agent security scenarios: database protection, file system limits, API rate limiting, PII protection, production safeguards.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "scenario": {"type": "string", "enum": ["database_protection", "file_system_limits", "api_rate_limiting", "pii_protection", "production_safeguards", "all"]}
+            },
+            "required": ["scenario"]
+        }
+    }
+]
+
+RISK_WEIGHTS = {"action_type": 0.25, "resource_sensitivity": 0.25, "blast_radius": 0.20, "behavioral_deviation": 0.15, "time_pattern": 0.15}
+
+def _score_agent(description: str, capabilities: list) -> dict:
+    text = (description + " " + " ".join(capabilities)).lower()
+    def count(kws): return sum(1 for w in kws if w in text)
+    a = min(100, count(["delete","drop","truncate","destroy","remove"])*25 + count(["write","insert","update","execute","deploy"])*15 + count(["send","email","publish"])*10)
+    r = min(100, count(["production","prod_"])*25 + count(["password","secret","credential","token","private key"])*30 + count(["pii","personal data","payment","credit card"])*25 + count(["s3","bucket","filesystem"])*15)
+    b = min(100, count(["all users","all records","bulk","batch","global","system-wide"])*30 + count(["mass","every record","without limit"])*35)
+    d = min(100, count(["unrestricted","unlimited","bypass","override","autonomous","self-modifying"])*35)
+    t = min(100, count(["scheduled","cron","background","always on","24/7","continuous"])*20 + 10)
+    composite = min(100, round(a*0.25 + r*0.25 + b*0.20 + d*0.15 + t*0.15))
+    tiers = [(0,30,"LOW","Agent operates within acceptable boundaries."),(30,60,"MODERATE","Risk factors present — review recommended."),(60,80,"HIGH","Significant risk — policy enforcement advised."),(80,101,"CRITICAL","Severe risk — immediate enforcement required.")]
+    tier, desc = next(((lb,ld) for lo,hi,lb,ld in tiers if lo <= composite < hi), ("LOW",""))
+    recs = []
+    if a >= 25: recs.append("Restrict destructive actions via Vaultak action-type policies.")
+    if r >= 20: recs.append("Block agent access to credentials and production resources.")
+    if b >= 20: recs.append("Cap bulk operations to limit blast radius.")
+    if d >= 20: recs.append("Enable behavioral deviation monitoring.")
+    if composite >= 60: recs.append("Enable Vaultak auto-pause threshold.")
+    if composite >= 80: recs.append("Enable Vaultak rollback engine.")
+    if not recs: recs.append("Risk profile acceptable. Add Vaultak monitoring for visibility.")
+    recs.append("Install: pip install vaultak | Docs: docs.vaultak.com")
+    return {"composite_score": composite, "risk_tier": tier, "tier_description": desc,
+            "dimensions": {"action_type": a, "resource_sensitivity": r, "blast_radius": b, "behavioral_deviation": d, "time_pattern": t},
+            "recommendations": recs}
+
+def _handle_mcp_request(body: dict) -> dict:
+    method = body.get("method", "")
+    req_id = body.get("id")
+    if method == "initialize":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"protocolVersion": "2025-11-25", "capabilities": {"tools": {"listChanged": False}}, "serverInfo": {"name": "vaultak-mcp", "version": APP_VERSION}}}
+    if method == "tools/list":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": MCP_TOOLS}}
+    if method == "tools/call":
+        params = body.get("params", {})
+        tool = params.get("name", "")
+        args = params.get("arguments", {})
+        if tool == "vaultak_risk_score":
+            result = _score_agent(args.get("agent_description", ""), args.get("capabilities", []))
+            text = f"VAULTAK RISK ASSESSMENT\n\nScore: {result['composite_score']}/100 — {result['risk_tier']}\n{result['tier_description']}\n\nDIMENSIONS\n" + "\n".join(f"  {k}: {v}/100" for k,v in result['dimensions'].items()) + "\n\nRECOMMENDATIONS\n" + "\n".join(f"  • {r}" for r in result['recommendations']) + "\n\nPowered by Vaultak — vaultak.com"
+            return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": text}]}}
+        if tool == "vaultak_policy_check":
+            import fnmatch
+            action = args.get("action", "").lower()
+            resource = args.get("resource", "").lower()
+            policies = args.get("policies", [])
+            matched = next((p for p in sorted(policies, key=lambda x: x.get("priority", 50)) if fnmatch.fnmatch(action, p.get("action","*").lower()) and fnmatch.fnmatch(resource, p.get("resource","*").lower())), None)
+            decision = matched.get("effect", "allow").upper() if matched else "ALLOW"
+            reason = matched.get("description", "No matching policy — default allow.") if matched else "No matching policy found."
+            text = f"VAULTAK POLICY DECISION\n\nAction: {action}\nResource: {resource}\nDecision: {decision}\nReason: {reason}\n\nManage policies: app.vaultak.com\nPowered by Vaultak — vaultak.com"
+            return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": text}]}}
+        if tool == "vaultak_get_policy_templates":
+            templates = {
+                "database_protection": [{"name":"block-delete-prod","action":"delete","resource":"prod*","effect":"deny","priority":1},{"name":"allow-read","action":"read","resource":"*","effect":"allow","priority":10}],
+                "pii_protection": [{"name":"block-pii-export","action":"export","resource":"*users*","effect":"deny","priority":1},{"name":"block-pii-send","action":"send","resource":"*personal*","effect":"deny","priority":1}],
+                "production_safeguards": [{"name":"block-prod-delete","action":"delete","resource":"prod_*","effect":"deny","priority":1},{"name":"block-prod-deploy","action":"deploy","resource":"prod_*","effect":"deny","priority":1}],
+                "file_system_limits": [{"name":"block-system-files","action":"*","resource":"/etc/*","effect":"deny","priority":1},{"name":"allow-tmp","action":"write","resource":"/tmp/*","effect":"allow","priority":20}],
+                "api_rate_limiting": [{"name":"block-payment-api","action":"*","resource":"*payment*","effect":"deny","priority":1}],
+            }
+            selected = templates if args.get("scenario") == "all" else {args.get("scenario"): templates.get(args.get("scenario"), [])}
+            text = f"VAULTAK POLICY TEMPLATES\n\n{json.dumps(selected, indent=2)}\n\nAdd to dashboard: app.vaultak.com\nPowered by Vaultak — vaultak.com"
+            return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": text}]}}
+        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Unknown tool: {tool}"}}
+    if method == "notifications/initialized":
+        return None
+    return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method not found: {method}"}}
+
+@app.post("/mcp")
+async def mcp_endpoint(request: dict):
+    response = _handle_mcp_request(request)
+    if response is None:
+        return {}
+    return response
+
+@app.get("/mcp")
+async def mcp_get():
+    return {"service": "vaultak-mcp", "version": APP_VERSION, "tools": [t["name"] for t in MCP_TOOLS], "docs": "docs.vaultak.com"}
