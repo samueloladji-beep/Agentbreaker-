@@ -1645,6 +1645,11 @@ async def stripe_webhook(request: Request, db=Depends(get_db)):
     return {"status": "ok"}
 
 
+@app.get("/download")
+def download_page():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/#download", status_code=302)
+
 @app.get("/sitemap.xml")
 def sitemap():
     from fastapi.responses import Response
