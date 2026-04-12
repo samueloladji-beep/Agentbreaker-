@@ -27,6 +27,15 @@ try:
 except ImportError:
     HAS_SHADOW_AI = False
 from typing import Any, Dict, Optional, List
+import stripe
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PRICES = {
+    "pro":        os.environ.get("STRIPE_PRICE_PRO", ""),
+    "team":       os.environ.get("STRIPE_PRICE_TEAM", ""),
+    "business":   os.environ.get("STRIPE_PRICE_BUSINESS", ""),
+    "enterprise": os.environ.get("STRIPE_PRICE_ENTERPRISE", ""),
+}
 from datetime import datetime, timezone
 import psycopg
 from psycopg.rows import dict_row
@@ -1511,6 +1520,125 @@ def shadow_ai_scan(body: ShadowAIScanRequest, org_id: str = Depends(get_org)):
     except Exception as e:
         logger.error(f"Shadow AI scan error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Stripe Billing ─────────────────────────────────────────────────────────────
+
+class CheckoutRequest(BaseModel):
+    plan: str  # pro | team | business | enterprise
+    success_url: str = "https://app.vaultak.com?upgrade=success"
+    cancel_url: str = "https://app.vaultak.com?upgrade=cancelled"
+
+@app.post("/api/billing/checkout")
+def create_checkout(body: CheckoutRequest, org_id: str = Depends(get_org), db=Depends(get_db)):
+    price_id = STRIPE_PRICES.get(body.plan.lower())
+    if not price_id:
+        raise HTTPException(status_code=400, detail=f"Invalid plan: {body.plan}")
+    if not stripe.api_key:
+        raise HTTPException(status_code=503, detail="Billing not configured")
+    try:
+        # Get or create Stripe customer
+        with db.cursor() as cur:
+            cur.execute("SELECT stripe_customer_id, name FROM organizations WHERE id = %s", (org_id,))
+            row = cur.fetchone()
+
+        customer_id = row.get("stripe_customer_id") if row else None
+
+        if not customer_id:
+            customer = stripe.Customer.create(metadata={"org_id": org_id})
+            customer_id = customer.id
+            with db.cursor() as cur:
+                cur.execute("UPDATE organizations SET stripe_customer_id = %s WHERE id = %s",
+                           (customer_id, org_id))
+                db.commit()
+
+        session = stripe.checkout.Session.create(
+            customer=customer_id,
+            payment_method_types=["card"],
+            line_items=[{"price": price_id, "quantity": 1}],
+            mode="subscription",
+            success_url=body.success_url,
+            cancel_url=body.cancel_url,
+            metadata={"org_id": org_id, "plan": body.plan},
+        )
+        return {"checkout_url": session.url, "session_id": session.id}
+    except stripe.StripeError as e:
+        logger.error(f"Stripe error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/billing/status")
+def billing_status(org_id: str = Depends(get_org), db=Depends(get_db)):
+    with db.cursor() as cur:
+        cur.execute("SELECT plan, stripe_customer_id, stripe_subscription_id FROM organizations WHERE id = %s", (org_id,))
+        row = cur.fetchone()
+    return {
+        "plan": row.get("plan", "starter") if row else "starter",
+        "has_billing": bool(row.get("stripe_customer_id") if row else False),
+    }
+
+@app.post("/api/billing/portal")
+def billing_portal(org_id: str = Depends(get_org), db=Depends(get_db)):
+    with db.cursor() as cur:
+        cur.execute("SELECT stripe_customer_id FROM organizations WHERE id = %s", (org_id,))
+        row = cur.fetchone()
+    if not row or not row.get("stripe_customer_id"):
+        raise HTTPException(status_code=404, detail="No billing account found")
+    try:
+        session = stripe.billing_portal.Session.create(
+            customer=row["stripe_customer_id"],
+            return_url="https://app.vaultak.com",
+        )
+        return {"portal_url": session.url}
+    except stripe.StripeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+from fastapi import Request
+@app.post("/api/stripe/webhook")
+async def stripe_webhook(request: Request, db=Depends(get_db)):
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        org_id = session.get("metadata", {}).get("org_id")
+        plan = session.get("metadata", {}).get("plan", "pro")
+        sub_id = session.get("subscription")
+        if org_id:
+            with db.cursor() as cur:
+                cur.execute(
+                    "UPDATE organizations SET plan = %s, stripe_subscription_id = %s WHERE id = %s",
+                    (plan, sub_id, org_id)
+                )
+                db.commit()
+
+    elif event["type"] == "customer.subscription.deleted":
+        sub = event["data"]["object"]
+        customer_id = sub.get("customer")
+        with db.cursor() as cur:
+            cur.execute(
+                "UPDATE organizations SET plan = 'starter', stripe_subscription_id = NULL WHERE stripe_customer_id = %s",
+                (customer_id,)
+            )
+            db.commit()
+
+    elif event["type"] == "customer.subscription.updated":
+        sub = event["data"]["object"]
+        customer_id = sub.get("customer")
+        status = sub.get("status")
+        if status == "active":
+            with db.cursor() as cur:
+                cur.execute(
+                    "UPDATE organizations SET stripe_subscription_id = %s WHERE stripe_customer_id = %s",
+                    (sub["id"], customer_id)
+                )
+                db.commit()
+
+    return {"status": "ok"}
+
 
 @app.get("/sitemap.xml")
 def sitemap():
