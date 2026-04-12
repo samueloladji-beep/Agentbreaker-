@@ -1308,10 +1308,10 @@ def pricing_page():
         <div class="plan-price" style="font-size:30px;">$0<span>/mo</span></div>
         <div class="plan-desc">For developers evaluating or building.</div>
         <ul class="plan-features">
-          <li><span class="check">&#10003;</span> Up to 3 agents</li>
+          <li><span class="check">&#10003;</span> 1 agent</li>
           <li><span class="check">&#10003;</span> 10,000 actions/mo</li>
           <li><span class="check">&#10003;</span> 7-day audit log</li>
-          <li><span class="check">&#10003;</span> ALERT mode</li>
+          <li><span class="check">&#10003;</span> ALERT mode only</li>
           <li><span class="check">&#10003;</span> Dashboard access</li>
           <li><span class="check">&#10003;</span> Community support</li>
         </ul>
@@ -1323,12 +1323,11 @@ def pricing_page():
         <div class="plan-price" style="font-size:30px;">$49<span>/mo</span></div>
         <div class="plan-desc">For developers running agents in production.</div>
         <ul class="plan-features">
-          <li><span class="check">&#10003;</span> Unlimited agents</li>
-          <li><span class="check">&#10003;</span> 500,000 actions/mo</li>
-          <li><span class="check">&#10003;</span> 90-day audit log</li>
+          <li><span class="check">&#10003;</span> Up to 5 agents</li>
+          <li><span class="check">&#10003;</span> 100,000 actions/mo</li>
+          <li><span class="check">&#10003;</span> 30-day audit log</li>
           <li><span class="check">&#10003;</span> ALERT, PAUSE, ROLLBACK</li>
-          <li><span class="check">&#10003;</span> Permission profiles</li>
-          <li><span class="check">&#10003;</span> Security policies</li>
+          <li><span class="check">&#10003;</span> Policy engine</li>
           <li><span class="check">&#10003;</span> Email support</li>
         </ul>
         <a href="https://app.vaultak.com" class="plan-btn plan-btn-outline">Get started</a>
@@ -1338,15 +1337,13 @@ def pricing_page():
         <div class="plan-badge">Most popular</div>
         <div class="plan-name">Team</div>
         <div class="plan-price" style="font-size:30px;">$99<span>/mo</span></div>
-        <div class="plan-desc">For teams of 3 to 10 with multiple agents.</div>
+        <div class="plan-desc">For teams with multiple agents.</div>
         <ul class="plan-features">
+          <li><span class="check">&#10003;</span> Up to 15 agents</li>
+          <li><span class="check">&#10003;</span> 500,000 actions/mo</li>
+          <li><span class="check">&#10003;</span> 90-day audit log</li>
           <li><span class="check">&#10003;</span> Everything in Pro</li>
-          <li><span class="check">&#10003;</span> 2,000,000 actions/mo</li>
-          <li><span class="check">&#10003;</span> 1-year audit log</li>
           <li><span class="check">&#10003;</span> PII masking</li>
-          <li><span class="check">&#10003;</span> MCP gateway</li>
-          <li><span class="check">&#10003;</span> Red teaming</li>
-          <li><span class="check">&#10003;</span> Up to 10 seats</li>
           <li><span class="check">&#10003;</span> Priority support</li>
         </ul>
         <a href="https://app.vaultak.com" class="plan-btn plan-btn-light">Get started</a>
@@ -1357,13 +1354,12 @@ def pricing_page():
         <div class="plan-price" style="font-size:30px;">$299<span>/mo</span></div>
         <div class="plan-desc">For companies with compliance requirements.</div>
         <ul class="plan-features">
+          <li><span class="check">&#10003;</span> Up to 50 agents</li>
+          <li><span class="check">&#10003;</span> 2,000,000 actions/mo</li>
+          <li><span class="check">&#10003;</span> 1-year audit log</li>
           <li><span class="check">&#10003;</span> Everything in Team</li>
-          <li><span class="check">&#10003;</span> Unlimited actions</li>
           <li><span class="check">&#10003;</span> SIEM integration</li>
           <li><span class="check">&#10003;</span> Shadow AI detection</li>
-          <li><span class="check">&#10003;</span> HIPAA &amp; SOC 2 audit trail</li>
-          <li><span class="check">&#10003;</span> Unlimited seats</li>
-          <li><span class="check">&#10003;</span> Slack alerts</li>
           <li><span class="check">&#10003;</span> SLA guarantee</li>
         </ul>
         <a href="https://app.vaultak.com" class="plan-btn plan-btn-outline">Get started</a>
@@ -1374,12 +1370,12 @@ def pricing_page():
         <div class="plan-price" style="font-size:24px;">From $999<span>/mo</span></div>
         <div class="plan-desc">For large orgs with advanced security needs.</div>
         <ul class="plan-features">
+          <li><span class="check">&#10003;</span> Unlimited agents</li>
+          <li><span class="check">&#10003;</span> Unlimited actions</li>
+          <li><span class="check">&#10003;</span> Unlimited audit log</li>
           <li><span class="check">&#10003;</span> Everything in Business</li>
           <li><span class="check">&#10003;</span> On-premises deployment</li>
           <li><span class="check">&#10003;</span> SSO / SAML</li>
-          <li><span class="check">&#10003;</span> Custom SLA</li>
-          <li><span class="check">&#10003;</span> Security review &amp; DPA</li>
-          <li><span class="check">&#10003;</span> PagerDuty integration</li>
           <li><span class="check">&#10003;</span> Dedicated support</li>
           <li><span class="check">&#10003;</span> Custom contract</li>
         </ul>
