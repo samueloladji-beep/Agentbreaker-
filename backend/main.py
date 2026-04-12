@@ -429,7 +429,35 @@ def create_api_key(org_id: str, name: str = "default", db=Depends(get_db), _=Dep
 @app.post("/api/actions")
 def log_action(body: ActionLog, org_id: str = Depends(get_org), db=Depends(get_db)):
     try:
-        # Compute risk score using 5-dimension engine
+        # ── Auto PII masking ──────────────────────────────────────────────
+        if HAS_PII:
+            try:
+                masker = PIIMasker()
+                if body.resource:
+                    result = masker.mask(body.resource)
+                    if result.pii_found:
+                        body.resource = result.masked_text
+                if body.payload:
+                    for k, v in body.payload.items():
+                        if isinstance(v, str):
+                            r = masker.mask(v)
+                            if r.pii_found:
+                                body.payload[k] = r.masked_text
+            except Exception:
+                pass
+
+        # ── Auto Shadow AI detection ──────────────────────────────────────
+        if HAS_SHADOW_AI and body.resource:
+            try:
+                detector = ShadowAIDetector()
+                shadow_result = detector.scan_text(body.resource)
+                if getattr(shadow_result, "detected", False):
+                    body.flag_reason = (body.flag_reason or "") + " [Shadow AI detected]"
+                    body.flagged = True
+            except Exception:
+                pass
+
+        # ── Compute risk score using 5-dimension engine ───────────────────
         final_score, breakdown = compute_risk_score(
             action_type=body.action_type or "",
             resource=body.resource or "",
@@ -441,7 +469,7 @@ def log_action(body: ActionLog, org_id: str = Depends(get_org), db=Depends(get_d
         )
 
         # Auto-flag based on engine score
-        auto_flagged = final_score >= 0.65
+        auto_flagged = final_score >= 0.30
         flagged = body.flagged or auto_flagged
         flag_reason = body.flag_reason
         if auto_flagged and not flag_reason:
@@ -476,7 +504,7 @@ def log_action(body: ActionLog, org_id: str = Depends(get_org), db=Depends(get_d
 
             # Create alert if flagged
             if flagged:
-                level = "critical" if final_score >= 0.80 else "high" if final_score >= 0.65 else "medium"
+                level = "critical" if final_score >= 0.85 else "high" if final_score >= 0.60 else "medium"
                 cur.execute("""
                     INSERT INTO alerts (org_id, agent_id, action_id, level, message)
                     VALUES (%s, %s, %s, %s, %s)
@@ -484,14 +512,14 @@ def log_action(body: ActionLog, org_id: str = Depends(get_org), db=Depends(get_d
                       f"{body.action_type or 'Action'} on {body.resource or 'unknown'} — risk {final_score:.2f}"))
 
             # Auto-pause agent if in PAUSE mode and high risk
-            if body.kill_switch_mode == "PAUSE" and final_score >= 0.80:
+            if body.kill_switch_mode == "PAUSE" and final_score >= 0.60:
                 cur.execute("""
                     UPDATE agents SET paused = TRUE, updated_at = NOW()
                     WHERE org_id = %s AND agent_id = %s
                 """, (org_id, body.agent_id))
 
             # Auto-rollback if in ROLLBACK mode and critical risk
-            if body.kill_switch_mode == "ROLLBACK" and final_score >= 0.90:
+            if body.kill_switch_mode == "ROLLBACK" and final_score >= 0.85:
                 cur.execute("""
                     UPDATE actions SET rolled_back = TRUE, rollback_at = NOW(),
                     rollback_reason = 'auto-rollback: critical risk score'
@@ -521,13 +549,25 @@ def log_action(body: ActionLog, org_id: str = Depends(get_org), db=Depends(get_d
             except Exception:
                 pass
 
+        # Determine decision for SDK response
+        score_100 = int(final_score * 100)
+        if score_100 >= 85:
+            decision = "ROLLBACK"
+        elif score_100 >= 60:
+            decision = "PAUSE"
+        elif score_100 >= 30:
+            decision = "ALERT"
+        else:
+            decision = "ALLOW"
+
         return {
             "logged": True,
             "action_id": action_id,
             "risk_score": final_score,
             "risk_breakdown": breakdown,
             "flagged": flagged,
-            "flag_reason": flag_reason
+            "flag_reason": flag_reason,
+            "decision": decision,
         }
     except HTTPException:
         raise
