@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="vaultak-sentry",
-    version="0.6.2",
+    version="0.6.3",
     description="Vaultak Sentry — monitor any AI agent with zero code changes",
     long_description="Monitor any AI agent process with zero code changes. Automatic behavioral monitoring, risk scoring, and alerts.",
     author="Vaultak",

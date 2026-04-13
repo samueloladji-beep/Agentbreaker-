@@ -275,11 +275,18 @@ def inject_vaultak(command, env, api_key, agent_id, alert_threshold,
             logger.warning("[INJECT] Node.js injector not found — install vaultak: npm install -g vaultak")
 
     # ── Ruby injection ───────────────────────────────────────────────────
-    elif any(p in cmd_base for p in ["ruby", "ruby3", "ruby2"]):
+    elif any(p in cmd_base for p in ["ruby", "ruby3", "ruby2", "ruby4"]):
         injector_path = _get_ruby_injector()
         if injector_path:
             existing = env.get("RUBYOPT", "")
             env["RUBYOPT"] = f"-r {injector_path}" + (" " + existing if existing else "")
+            # Use Homebrew Ruby if available (has vaultak gem)
+            homebrew_ruby = "/opt/homebrew/opt/ruby/bin/ruby"
+            import os as _os
+            if _os.path.exists(homebrew_ruby) and cmd_base in ["ruby"]:
+                command[0] = homebrew_ruby
+                logger.info(f"[INJECT] Using Homebrew Ruby with vaultak gem")
+            env["GEM_PATH"] = "/opt/homebrew/lib/ruby/gems/4.0.0:/opt/homebrew/Cellar/ruby/4.0.2/lib/ruby/gems/4.0.0"
             logger.info(f"[INJECT] Ruby SDK injected via RUBYOPT")
         else:
             logger.warning("[INJECT] Ruby injector not available yet")
@@ -398,22 +405,71 @@ if (apiKey) {
 
 
 def _get_ruby_injector():
-    """Create a Ruby injector file."""
+    """Create a Ruby injector file with full SDK support."""
     import tempfile
     inject_dir = os.path.join(tempfile.gettempdir(), "vaultak_inject_ruby")
     os.makedirs(inject_dir, exist_ok=True)
     injector = os.path.join(inject_dir, "vaultak_injector.rb")
     code = """
 # Vaultak Ruby injector - auto-loaded via RUBYOPT
-api_key = ENV['VAULTAK_API_KEY']
-agent_id = ENV['VAULTAK_AGENT_ID'] || 'ruby-agent'
-if api_key
-  begin
-    require 'vaultak'
-    Vaultak.monitor(agent_id, api_key: api_key)
-    $stderr.puts "[Vaultak] Ruby agent monitoring active: #{agent_id}"
-  rescue LoadError
-    $stderr.puts "[Vaultak] Could not load SDK. Install with: gem install vaultak"
+# Guard against double execution
+unless defined?($vaultak_injected)
+  $vaultak_injected = true
+
+  api_key = ENV['VAULTAK_API_KEY'] || ''
+  agent_id = ENV['VAULTAK_AGENT_ID'] || 'ruby-agent'
+  alert_threshold = (ENV['VAULTAK_ALERT_THRESHOLD'] || '30').to_i
+  pause_threshold = (ENV['VAULTAK_PAUSE_THRESHOLD'] || '60').to_i
+  rollback_threshold = (ENV['VAULTAK_ROLLBACK_THRESHOLD'] || '85').to_i
+  blocked = (ENV['VAULTAK_BLOCKED'] || '').split(',').reject(&:empty?)
+
+  if !api_key.empty?
+    begin
+      require 'vaultak'
+      $vaultak_client = Vaultak::Client.new(
+        api_key: api_key,
+        agent_id: agent_id,
+        alert_threshold: alert_threshold,
+        pause_threshold: pause_threshold,
+        rollback_threshold: rollback_threshold,
+        blocked_resources: blocked
+      )
+
+      # Patch File.write globally
+      orig_write = File.method(:write)
+      File.define_singleton_method(:write) do |path, *args|
+        $vaultak_client.snapshot_file(path.to_s)
+        decision = $vaultak_client.intercept('file_write', path.to_s, {})
+        raise Vaultak::VaultakBlockError, "File write blocked: #{path}" if decision == 'BLOCK'
+        orig_write.call(path, *args)
+      end
+
+      # Patch File.delete globally
+      orig_delete = File.method(:delete)
+      File.define_singleton_method(:delete) do |*paths|
+        paths.each do |path|
+          decision = $vaultak_client.intercept('delete', path.to_s, {})
+          raise Vaultak::VaultakBlockError, "File delete blocked: #{path}" if decision == 'BLOCK'
+        end
+        orig_delete.call(*paths)
+      end
+
+      at_exit do
+        # Restore originals on exit
+        if orig_write
+          File.define_singleton_method(:write) { |*args| orig_write.call(*args) }
+        end
+        if orig_delete
+          File.define_singleton_method(:delete) { |*args| orig_delete.call(*args) }
+        end
+      end
+
+      $stderr.puts "[Vaultak] Ruby agent monitoring active: #{agent_id}"
+    rescue LoadError
+      $stderr.puts "[Vaultak] Could not load SDK. Install with: gem install vaultak"
+    rescue => e
+      $stderr.puts "[Vaultak] Injection error: #{e.message}"
+    end
   end
 end
 """
