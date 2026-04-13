@@ -1,0 +1,27 @@
+{
+  "name": "vaultak",
+  "version": "0.6.1",
+  "description": "Runtime security for autonomous AI agents",
+  "main": "index.js",
+  "bin": {
+    "vaultak-node": "./bin/vaultak.js"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "security",
+    "monitoring",
+    "runtime"
+  ],
+  "author": "Vaultak",
+  "license": "MIT",
+  "homepage": "https://vaultak.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/samueloladji-beep/Vaultak"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

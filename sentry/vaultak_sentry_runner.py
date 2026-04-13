@@ -210,6 +210,218 @@ def monitor_process(proc, agent_id, session_id, api_key, pause_threshold, rollba
         watchdog_observer.join()
 
 
+
+def inject_vaultak(command, env, api_key, agent_id, alert_threshold,
+                   pause_threshold, rollback_threshold, blocked_resources):
+    """
+    Detect the language of the agent process and inject Vaultak SDK
+    automatically — zero code changes required.
+    Returns (command, env) tuple.
+    """
+    if not command:
+        return command, env
+    command = list(command)  # make a mutable copy
+
+    cmd = command[0].lower()
+    cmd_base = os.path.basename(cmd)
+
+    # Set common env vars for all languages
+    env["VAULTAK_API_KEY"] = api_key
+    env["VAULTAK_AGENT_ID"] = agent_id
+    env["VAULTAK_ALERT_THRESHOLD"] = str(alert_threshold)
+    env["VAULTAK_PAUSE_THRESHOLD"] = str(pause_threshold)
+    env["VAULTAK_ROLLBACK_THRESHOLD"] = str(rollback_threshold)
+    if blocked_resources:
+        env["VAULTAK_BLOCKED"] = ",".join(blocked_resources)
+
+    # ── Python injection ─────────────────────────────────────────────────
+    if any(p in cmd_base for p in ["python", "python3", "python2"]):
+        injector_path = _get_python_injector()
+        if injector_path:
+            # Most reliable method: use -c to preload injector then exec the script
+            # Transform: python3 script.py args
+            # Into:      python3 -c "exec(open('injector').read()); exec(open('script.py').read())"
+            # For -c commands, wrap with injector prefix
+            if len(command) >= 2:
+                if command[1] == '-c' and len(command) >= 3:
+                    # python3 -c "code" -> python3 -c "injector_code; original_code"
+                    original_code = command[2]
+                    inject_code = f"exec(open(r'{injector_path}').read())\n"
+                    command[2] = inject_code + original_code
+                elif command[1] == '-m' and len(command) >= 3:
+                    # python3 -m module -> prepend injector via PYTHONPATH
+                    injector_dir = os.path.dirname(injector_path)
+                    existing = env.get("PYTHONPATH", "")
+                    env["PYTHONPATH"] = injector_dir + (":" + existing if existing else "")
+                else:
+                    # python3 script.py -> python3 -c "inject(); exec(script)"
+                    script = command[1]
+                    rest = command[2:]
+                    inject_code = f"exec(open(r'{injector_path}').read())\nimport sys; sys.argv={[script]+rest}\nexec(open(r'{script}').read())"
+                    command[1] = '-c'
+                    command[2:] = [inject_code]
+            logger.info(f"[INJECT] Python SDK injected via command wrapping")
+        else:
+            logger.warning("[INJECT] Python injector not found — install vaultak: pip install vaultak")
+
+    # ── Node.js injection ────────────────────────────────────────────────
+    elif any(p in cmd_base for p in ["node", "nodejs"]):
+        injector_path = _get_node_injector()
+        if injector_path:
+            existing = env.get("NODE_OPTIONS", "")
+            env["NODE_OPTIONS"] = f"--require {injector_path}" + (" " + existing if existing else "")
+            logger.info(f"[INJECT] Node.js SDK injected via NODE_OPTIONS")
+        else:
+            logger.warning("[INJECT] Node.js injector not found — install vaultak: npm install -g vaultak")
+
+    # ── Ruby injection ───────────────────────────────────────────────────
+    elif any(p in cmd_base for p in ["ruby", "ruby3", "ruby2"]):
+        injector_path = _get_ruby_injector()
+        if injector_path:
+            existing = env.get("RUBYOPT", "")
+            env["RUBYOPT"] = f"-r {injector_path}" + (" " + existing if existing else "")
+            logger.info(f"[INJECT] Ruby SDK injected via RUBYOPT")
+        else:
+            logger.warning("[INJECT] Ruby injector not available yet")
+
+    # ── Java injection ───────────────────────────────────────────────────
+    elif any(p in cmd_base for p in ["java"]):
+        logger.info("[INJECT] Java detected — network/filesystem monitoring active via Sentry")
+        logger.info("[INJECT] For full SDK injection, use the Vaultak Java agent (coming soon)")
+
+    # ── Go injection ─────────────────────────────────────────────────────
+    elif any(p in cmd_base for p in ["go"]):
+        logger.info("[INJECT] Go binary detected — network/filesystem monitoring active via Sentry")
+        logger.info("[INJECT] For full SDK support, use github.com/vaultak/vaultak-go (coming soon)")
+
+    else:
+        logger.info(f"[INJECT] Language not detected for '{cmd_base}' — Sentry monitoring active")
+
+    return command, env
+
+
+def _get_python_injector():
+    """Write and return path to the Python SDK injector."""
+    import tempfile
+    inject_dir = os.path.join(tempfile.gettempdir(), "vaultak_inject_py")
+    os.makedirs(inject_dir, exist_ok=True)
+    sitecustomize = os.path.join(inject_dir, "sitecustomize.py")
+
+    code = """
+import os, sys
+
+if not hasattr(sys, '_vaultak_injected'):
+    sys._vaultak_injected = True
+    for _p in [os.path.expanduser("~/vaultak"), "/Users/samueloladji/vaultak"]:
+        if os.path.exists(_p) and _p not in sys.path:
+            sys.path.insert(0, _p)
+    api_key = os.environ.get("VAULTAK_API_KEY", "")
+    agent_id = os.environ.get("VAULTAK_AGENT_ID", "default")
+    alert_threshold = int(os.environ.get("VAULTAK_ALERT_THRESHOLD", "30"))
+    pause_threshold = int(os.environ.get("VAULTAK_PAUSE_THRESHOLD", "60"))
+    rollback_threshold = int(os.environ.get("VAULTAK_ROLLBACK_THRESHOLD", "85"))
+    blocked = [b for b in os.environ.get("VAULTAK_BLOCKED", "").split(",") if b]
+    if api_key:
+        try:
+            from vaultak.interceptor import install_all, uninstall_all
+            from vaultak.core import VaultakMonitor
+            monitor = VaultakMonitor(
+                agent_id=agent_id,
+                api_key=api_key,
+                api_endpoint=os.environ.get("VAULTAK_API_ENDPOINT", "https://vaultak.com"),
+                alert_threshold=alert_threshold,
+                pause_threshold=pause_threshold,
+                rollback_threshold=rollback_threshold,
+                allowed_resources=None,
+                blocked_resources=blocked,
+                max_actions_per_minute=60,
+            )
+            install_all(monitor)
+            import atexit
+            atexit.register(uninstall_all)
+            print(f"[Vaultak] Python agent monitoring active: {agent_id}", file=sys.stderr)
+        except Exception:
+            pass
+"""
+    with open(sitecustomize, "w") as f:
+        f.write(code)
+    return sitecustomize
+
+
+def _get_node_injector():
+    """Find or create the Node.js injector file."""
+    # Check if vaultak npm package is installed globally
+    import shutil
+    node_modules_paths = [
+        os.path.join(os.path.expanduser("~"), ".npm-global", "lib", "node_modules", "vaultak", "vaultak-injector.js"),
+        "/usr/local/lib/node_modules/vaultak/vaultak-injector.js",
+        "/usr/lib/node_modules/vaultak/vaultak-injector.js",
+        os.path.join(os.path.expanduser("~"), "vaultak", "sdk-node", "vaultak-injector.js"),
+    ]
+    for p in node_modules_paths:
+        if os.path.exists(p):
+            return p
+
+    # Write a standalone injector to temp
+    import tempfile
+    inject_dir = os.path.join(tempfile.gettempdir(), "vaultak_inject_node")
+    os.makedirs(inject_dir, exist_ok=True)
+    injector = os.path.join(inject_dir, "vaultak-injector.js")
+
+    code = """
+'use strict';
+const apiKey = process.env.VAULTAK_API_KEY || '';
+const agentId = process.env.VAULTAK_AGENT_ID || 'node-agent';
+if (apiKey) {
+    try {
+        const vaultakPath = require.resolve('vaultak');
+        const { Vaultak } = require(vaultakPath);
+        const vt = new Vaultak({
+            apiKey,
+            agentId,
+            alertThreshold: parseInt(process.env.VAULTAK_ALERT_THRESHOLD || '30'),
+            pauseThreshold: parseInt(process.env.VAULTAK_PAUSE_THRESHOLD || '60'),
+            rollbackThreshold: parseInt(process.env.VAULTAK_ROLLBACK_THRESHOLD || '85'),
+            blockedResources: (process.env.VAULTAK_BLOCKED || '').split(',').filter(Boolean),
+        });
+        vt.monitor(agentId);
+        console.error('[Vaultak] Node.js agent monitoring active: ' + agentId);
+    } catch(e) {
+        console.error('[Vaultak] Could not load SDK: ' + e.message);
+        console.error('[Vaultak] Install with: npm install vaultak');
+    }
+}
+"""
+    with open(injector, "w") as f:
+        f.write(code)
+    return injector
+
+
+def _get_ruby_injector():
+    """Create a Ruby injector file."""
+    import tempfile
+    inject_dir = os.path.join(tempfile.gettempdir(), "vaultak_inject_ruby")
+    os.makedirs(inject_dir, exist_ok=True)
+    injector = os.path.join(inject_dir, "vaultak_injector.rb")
+    code = """
+# Vaultak Ruby injector - auto-loaded via RUBYOPT
+api_key = ENV['VAULTAK_API_KEY']
+agent_id = ENV['VAULTAK_AGENT_ID'] || 'ruby-agent'
+if api_key
+  begin
+    require 'vaultak'
+    Vaultak.monitor(agent_id, api_key: api_key)
+    $stderr.puts "[Vaultak] Ruby agent monitoring active: #{agent_id}"
+  rescue LoadError
+    $stderr.puts "[Vaultak] Could not load SDK. Install with: gem install vaultak"
+  end
+end
+"""
+    with open(injector, "w") as f:
+        f.write(code)
+    return injector
+
+
 def cmd_run(args):
     api_key = get_api_key()
     if not api_key and not args.no_auth:
@@ -227,11 +439,16 @@ def cmd_run(args):
     # Send session start event
     send_event(api_key, agent_id, session_id, "session_start", "sentry", 0, "ALLOW")
 
-    # Launch the process
+    # Detect language and inject Vaultak SDK
     env = os.environ.copy()
+    injected_command, env = inject_vaultak(args.command, env, api_key, agent_id,
+                         args.alert_threshold, args.pause_threshold,
+                         args.rollback_threshold, blocked)
+
+    logger.info(f"[DEBUG] Final command: {injected_command[:3] if len(injected_command) > 3 else injected_command}")
     try:
         proc = subprocess.Popen(
-            args.command,
+            injected_command,
             env=env,
             stdout=None,
             stderr=None,
