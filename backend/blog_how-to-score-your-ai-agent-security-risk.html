@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <title>How to Score Your AI Agent's Security Risk — Vaultak Blog</title>
+  <meta name="description" content="The Vaultak AI Agent Risk Scanner gives your agent a risk score from 0 to 100 across five dimensions — action type, blast radius, behavioral deviation, and more. Free, no account required."/>
+  <meta name="keywords" content="AI agent security, AI agent risk score, LLM security, agent blast radius, LangChain security, CrewAI security, runtime security AI agents"/>
+  <meta property="og:title" content="How to Score Your AI Agent's Security Risk — Vaultak"/>
+  <meta property="og:description" content="The Vaultak AI Agent Risk Scanner gives your agent a risk score from 0 to 100 across five dimensions — free, no account required."/>
+  <meta property="og:type" content="article"/>
+  <meta property="og:url" content="https://vaultak.com/blog/how-to-score-your-ai-agent-security-risk"/>
+  <meta name="robots" content="index, follow"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0d0b12;color:#ede9e4;font-family:'Inter',sans-serif;line-height:1.7;min-height:100vh}
+    .container{max-width:720px;margin:0 auto;padding:48px 24px 80px}
+    .brand{font-size:15px;font-weight:700;letter-spacing:.08em;color:#fff;margin-bottom:8px}
+    .nav{font-size:12px;color:#44414f;font-family:'JetBrains Mono',monospace;margin-bottom:48px}
+    .nav a{color:#8a8695;text-decoration:none}
+    .nav a:hover{color:#fff}
+    .post-tag{display:inline-block;background:rgba(99,88,255,0.12);border:1px solid rgba(99,88,255,0.2);color:#a89fe0;font-size:10px;font-family:'JetBrains Mono',monospace;padding:3px 10px;border-radius:20px;margin-bottom:16px;letter-spacing:.08em;text-transform:uppercase}
+    h1{font-size:36px;font-weight:700;color:#fff;letter-spacing:-.5px;line-height:1.2;margin-bottom:16px}
+    .meta{font-size:12px;color:#44414f;font-family:'JetBrains Mono',monospace;margin-bottom:40px}
+    h2{font-size:22px;font-weight:600;color:#fff;margin:40px 0 14px;letter-spacing:-.2px}
+    h3{font-size:17px;font-weight:600;color:#ede9e4;margin:28px 0 10px}
+    p{font-size:15px;color:#8a8695;line-height:1.85;margin-bottom:18px}
+    ul,ol{padding-left:20px;margin-bottom:18px}
+    li{font-size:15px;color:#8a8695;line-height:1.85;margin-bottom:8px}
+    strong{color:#ede9e4;font-weight:500}
+    code{font-family:'JetBrains Mono',monospace;font-size:13px;background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:4px;color:#a89fe0}
+    pre{background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:20px 24px;margin:24px 0;overflow-x:auto}
+    pre code{background:none;padding:0;font-size:13px;line-height:1.8;color:#a89fe0}
+    blockquote{border-left:3px solid rgba(99,88,255,0.5);padding-left:20px;margin:24px 0;color:#6b6880;font-style:italic}
+    table{width:100%;border-collapse:collapse;margin:24px 0}
+    th{text-align:left;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;color:#44414f;text-transform:uppercase;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08)}
+    td{font-size:14px;color:#8a8695;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.05)}
+    .cta{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:32px;margin:48px 0;text-align:center}
+    .cta-title{font-size:20px;font-weight:600;color:#fff;margin-bottom:8px}
+    .cta-desc{font-size:14px;color:#8a8695;margin-bottom:20px}
+    .cta-btn{display:inline-block;background:#fff;color:#000;padding:11px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px}
+    .cta-btn:hover{background:#ede9e4}
+    .faq-item{border-top:1px solid rgba(255,255,255,0.06);padding:20px 0}
+    .faq-q{font-size:15px;font-weight:600;color:#ede9e4;margin-bottom:10px}
+    .faq-a{font-size:14px;color:#8a8695;line-height:1.8}
+    .score-box{background:rgba(99,88,255,0.06);border:1px solid rgba(99,88,255,0.15);border-radius:10px;padding:20px 24px;margin:24px 0}
+    .score-box p{margin-bottom:0}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="brand">Vaultak</div>
+  <div class="nav"><a href="https://vaultak.com">Home</a> &middot; <a href="https://vaultak.com/blog">Blog</a> &middot; How to Score Your AI Agent's Security Risk</div>
+
+  <div class="post-tag">Security</div>
+  <h1>How to Score Your AI Agent's Security Risk</h1>
+  <div class="meta">April 14, 2026 &middot; 7 min read &middot; By Samuel Oladji</div>
+
+  <p>Most AI agent security problems are not discovered during development. They are discovered in production, usually after something has already gone wrong.</p>
+
+  <p>A developer builds a customer service agent. It can look up orders, update accounts, send emails, escalate tickets. Tests pass. It ships. Two weeks later, a misinterpreted instruction triggers a bulk update across every account in the database. Thousands of records corrupted. The agent did nothing wrong. It did exactly what it was designed to do.</p>
+
+  <p>The question that was never asked: <strong>what is the worst thing this agent can do if something goes wrong?</strong></p>
+
+  <p>That is the question the Vaultak AI Agent Risk Scanner answers. This post explains how it works, what the five risk dimensions measure, and how to act on your score.</p>
+
+  <h2>The problem the scanner solves</h2>
+
+  <p>There is a consistent gap in how AI agents get shipped to production. Developers test for functional correctness: does the agent do what it is supposed to do? They rarely test for risk exposure: what is the worst-case outcome if something goes wrong?</p>
+
+  <p>These are different questions, and they require different tooling. The scanner is that tooling. Describe your agent in plain English, select the capabilities that apply, and get a composite risk score in 10 seconds with specific remediation recommendations.</p>
+
+  <p>No account. No credit card. Free at <a href="https://vaultak.com/scan" style="color:#a89fe0;text-decoration:none;">vaultak.com/scan</a>.</p>
+
+  <h2>The five dimensions of agent risk</h2>
+
+  <h3>1. Action Type</h3>
+  <p>This dimension evaluates what the agent can actually do. Read-only operations score low. Write operations, delete operations, code execution, and outbound messaging score progressively higher. An agent that reads documents is categorically different from one that executes shell commands.</p>
+
+  <h3>2. Resource Sensitivity</h3>
+  <p>An agent's action capabilities and the data it touches are separate concerns. An agent with narrow actions can still score high on resource sensitivity if it is pointed at production databases, API credentials, PII, payment records, or health data. This dimension isolates that exposure.</p>
+
+  <h3>3. Blast Radius</h3>
+  <p>Blast radius asks: if this agent makes a mistake, how many records or systems are affected? An agent that processes one record at a time has a small blast radius. An agent that runs bulk operations across all users has an enormous one.</p>
+
+  <p>This is the dimension most frequently missed before production deployment, and the one most commonly implicated in real incidents. The account corruption scenario described above is a blast radius failure, not a code failure.</p>
+
+  <h3>4. Behavioral Deviation</h3>
+  <p>This dimension looks for signals that the agent might operate unpredictably: unlimited autonomy, absent confirmation steps, self-modification capabilities, the ability to override its own instructions. High behavioral deviation scores correlate strongly with production surprises.</p>
+
+  <h3>5. Time Pattern</h3>
+  <p>A continuously running background agent with broad permissions is functionally different from one that runs once when a human explicitly triggers it. Always-on agents compound every other risk dimension. This is easy to overlook and important to isolate.</p>
+
+  <h2>How to use the scanner</h2>
+
+  <p>Navigate to <a href="https://vaultak.com/scan" style="color:#a89fe0;text-decoration:none;">vaultak.com/scan</a>. You will see a text area and a set of capability tags.</p>
+
+  <p>In the text area, describe what your agent does in plain English. For example:</p>
+
+  <blockquote>A customer service agent that can look up customer orders, update account information, send emails to customers, and escalate issues by creating support tickets.</blockquote>
+
+  <p>Then select the capability tags that apply. In this case: write database, send emails, call external APIs. Hit Scan Agent.</p>
+
+  <p>The scanner evaluates your agent across the five dimensions and returns a composite score with specific recommendations. For the customer service agent above, a typical result is around 58 out of 100, moderate risk, with recommendations like:</p>
+
+  <ul>
+    <li>Restrict write operations to only the fields the agent needs to update</li>
+    <li>Cap bulk operations to a maximum of 10 records per run</li>
+    <li>Add human approval for any action that touches payment information</li>
+  </ul>
+
+  <p>These are not generic. They are tied to your agent's specific capability profile.</p>
+
+  <h2>Score ranges in practice</h2>
+
+  <table>
+    <tr>
+      <th>Score</th>
+      <th>Risk Level</th>
+      <th>What it typically means</th>
+    </tr>
+    <tr>
+      <td><code>0 - 30</code></td>
+      <td>Low</td>
+      <td>Read-only or tightly scoped agent, well-contained</td>
+    </tr>
+    <tr>
+      <td><code>31 - 60</code></td>
+      <td>Moderate</td>
+      <td>Write access or broad data scope, targeted fixes needed</td>
+    </tr>
+    <tr>
+      <td><code>61 - 80</code></td>
+      <td>High</td>
+      <td>Multiple elevated dimensions, guardrails required before production</td>
+    </tr>
+    <tr>
+      <td><code>81 - 100</code></td>
+      <td>Critical</td>
+      <td>Should not be in production without serious controls in place</td>
+    </tr>
+  </table>
+
+  <p>The lowest score we have seen in production use is 12, a read-only research agent with no write access and a single human trigger. The highest is 94, an autonomous deployment agent with production database write access, shell execution, and outbound email. That one was flagged and stopped immediately.</p>
+
+  <h2>Integrating Vaultak Core after scanning</h2>
+
+  <p>The scanner tells you your risk exposure. The Vaultak Core SDK addresses it. Five lines of code and your agent's actions are monitored in real time, policies are enforced at execution, and the rollback engine snapshots state before high-risk actions.</p>
+
+<pre><code>pip install vaultak</code></pre>
+
+<pre><code>from vaultak import VaultakClient
+
+client = VaultakClient(api_key="your_api_key")
+
+# Define a blast radius policy
+client.policies.create({
+    "name": "blast_radius_limit",
+    "rule": "block",
+    "condition": {
+        "action": "update",
+        "record_count_exceeds": 10
+    }
+})
+
+# Pre-execution check
+result = client.check(
+    action="update",
+    resource="users.accounts",
+    payload={"user_id": user_id, "fields": fields}
+)
+
+if result.blocked:
+    raise PolicyViolationError(result.reason)
+
+# Your agent action executes here</code></pre>
+
+  <p>If an action is blocked by policy, the agent receives a structured response and continues to the next step. The action never executes. No rollback required.</p>
+
+  <p>Vaultak works with LangChain, CrewAI, AutoGPT, LangGraph, and the OpenAI Assistants API. It operates at the action layer, not the model layer, so it is model-agnostic across Claude, GPT-4, Gemini, and others.</p>
+
+  <h2>Frequently asked questions</h2>
+
+  <div class="faq-item">
+    <div class="faq-q">Is the scanner actually free?</div>
+    <div class="faq-a">Yes. The scanner is free and will remain free. No account, no credit card, no time limit. It exists because awareness has to come before tooling adoption, and there should be no barrier to understanding your risk exposure.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">What frameworks does Vaultak support?</div>
+    <div class="faq-a">LangChain, CrewAI, AutoGPT, LangGraph, and the OpenAI Assistants API. Vaultak operates at the action layer rather than the model layer, which makes it framework-agnostic and model-agnostic by design.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">What does a high score mean, specifically?</div>
+    <div class="faq-a">Scores above 80 indicate critical risk: agents that should not be in production without controls in place. Scores between 61 and 80 indicate high risk, requiring guardrails across multiple dimensions. Scores between 31 and 60 indicate moderate risk with targeted remediation needs. Below 30 is low risk, typically read-only or tightly scoped agents.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">What is the rollback engine?</div>
+    <div class="faq-a">The Vaultak rollback engine captures a state snapshot before each high-risk action. If an action produces unintended consequences, the relevant state can be restored instantly from the dashboard or via API. Available in Vaultak Core, not the free scanner.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">How does SIEM integration work?</div>
+    <div class="faq-a">Vaultak integrates natively with Splunk, Datadog, Microsoft Sentinel, Slack, and PagerDuty. Agent activity events stream into your existing security tooling in real time, with no additional instrumentation required.</div>
+  </div>
+
+  <div class="cta">
+    <div class="cta-title">Run your agent through the scanner</div>
+    <div class="cta-desc">Free, no account required. A risk score in 10 seconds.</div>
+    <a href="https://vaultak.com/scan" class="cta-btn">Scan your agent &rarr;</a>
+  </div>
+
+</div>
+</body>
+</html>
