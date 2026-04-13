@@ -2048,3 +2048,8 @@ def serve_blog_how_to_secure_openai_assistants():
 def serve_blog_how_to_test_ai_agent_security():
     p = os.path.join(os.path.dirname(__file__), "blog_how-to-test-ai-agent-security.html")
     return HTMLResponse(content=open(p).read()) if os.path.exists(p) else HTMLResponse("Not found", 404)
+
+@app.get("/download", response_class=HTMLResponse)
+def serve_download():
+    p = os.path.join(os.path.dirname(__file__), "download.html")
+    return HTMLResponse(content=open(p).read()) if os.path.exists(p) else HTMLResponse("Not found", 404)
