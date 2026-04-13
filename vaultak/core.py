@@ -137,7 +137,7 @@ class VaultakMonitor:
         # Action type risk
         action_scores = {
             "file_write": 40, "file_read": 10, "delete": 75,
-            "api_call": 35, "execute": 60, "database_write": 50,
+            "api_call": 35, "execute": 50, "database_write": 50,
             "database_read": 15, "custom": 30,
         }
         score += action_scores.get(action_type, 30)
