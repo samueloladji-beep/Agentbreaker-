@@ -1495,238 +1495,41 @@ def sitemap():
     xml = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://vaultak.com/</loc><priority>1.0</priority></url>
+  <url><loc>https://vaultak.com/scan</loc><priority>0.95</priority></url>
   <url><loc>https://vaultak.com/pricing</loc><priority>0.9</priority></url>
   <url><loc>https://vaultak.com/about</loc><priority>0.8</priority></url>
   <url><loc>https://vaultak.com/security</loc><priority>0.8</priority></url>
   <url><loc>https://vaultak.com/status</loc><priority>0.7</priority></url>
   <url><loc>https://vaultak.com/privacy</loc><priority>0.6</priority></url>
   <url><loc>https://vaultak.com/terms</loc><priority>0.6</priority></url>
-  <url><loc>https://vaultak.com/blog</loc><priority>0.8</priority></url>
-  <url><loc>https://vaultak.com/blog/what-is-ai-agent-runtime-security</loc><priority>0.8</priority></url>
-  <url><loc>https://vaultak.com/blog/how-to-secure-langchain-agents</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog</loc><priority>0.9</priority></url>
+  <url><loc>https://vaultak.com/download</loc><priority>0.8</priority></url>
   <url><loc>https://vaultak.com/blog/ai-agent-hipaa-soc2-compliance</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/ai-agent-policy-enforcement</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/ai-agent-security-best-practices</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/ai-agent-what-happens-when-rogue</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-add-access-control-ai-agents</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-add-guardrails-to-claude-agents</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-add-kill-switch-ai-agent</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-audit-ai-agent-actions</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-deploy-ai-agents-safely</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-enforce-least-privilege-ai-agents</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-limit-ai-agent-capabilities</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-monitor-ai-agent-actions</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-prevent-ai-agent-data-deletion</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-prevent-ai-agent-sensitive-data-access</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-prevent-prompt-injection-ai-agents</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-roll-back-ai-agent-damage</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-secure-autogpt-agents</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-secure-crewai-agents</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-secure-langchain-agents</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-secure-langgraph-agents</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-secure-openai-assistants</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/how-to-test-ai-agent-security</loc><priority>0.8</priority></url>
+  <url><loc>https://vaultak.com/blog/what-is-ai-agent-runtime-security</loc><priority>0.8</priority></url>
   <url><loc>https://vaultak.com/blog/why-your-ai-agent-needs-a-kill-switch</loc><priority>0.8</priority></url>
-  <url><loc>https://vaultak.com/whitepaper</loc><priority>0.9</priority></url>
 </urlset>"""
     return Response(content=xml, media_type="application/xml")
-
-@app.get("/sitemap.xml")
-def sitemap():
-    from fastapi.responses import Response
-    xml = """<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://vaultak.com/</loc><priority>1.0</priority></url>
-  <url><loc>https://vaultak.com/pricing</loc><priority>0.9</priority></url>
-  <url><loc>https://vaultak.com/about</loc><priority>0.8</priority></url>
-  <url><loc>https://vaultak.com/security</loc><priority>0.8</priority></url>
-  <url><loc>https://vaultak.com/status</loc><priority>0.7</priority></url>
-  <url><loc>https://vaultak.com/privacy</loc><priority>0.6</priority></url>
-  <url><loc>https://vaultak.com/terms</loc><priority>0.6</priority></url>
-</urlset>"""
-    return Response(content=xml, media_type="application/xml")
-
-
-# Red Team
-class RedTeamRequest(BaseModel):
-    agent_description: str
-    capabilities: Optional[List[str]] = []
-
-@app.post("/api/redteam/scan")
-def redteam_scan(body: RedTeamRequest, org_id: str = Depends(get_org)):
-    if not HAS_REDTEAM:
-        raise HTTPException(status_code=503, detail="Red team module unavailable")
-    try:
-        engine = RedTeamEngine()
-        report = engine.scan(agent_description=body.agent_description, capabilities=body.capabilities)
-        return {"total_attacks": report.total_attacks, "vulnerabilities_found": report.vulnerabilities_found, "risk_score": report.risk_score, "findings": [{"category": str(f.category), "severity": f.severity, "description": f.description, "recommendation": f.recommendation} for f in report.findings], "summary": report.summary}
-    except Exception as e:
-        logger.error(f"Red team scan error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Shadow AI
-class ShadowAIScanRequest(BaseModel):
-    text: str
-    context: Optional[str] = None
-
-@app.get("/api/shadow-ai/status")
-def shadow_ai_status(org_id: str = Depends(get_org)):
-    if not HAS_SHADOW_AI:
-        raise HTTPException(status_code=503, detail="Shadow AI module unavailable")
-    return {"available": HAS_SHADOW_AI}
-
-@app.post("/api/shadow-ai/scan")
-def shadow_ai_scan(body: ShadowAIScanRequest, org_id: str = Depends(get_org)):
-    if not HAS_SHADOW_AI:
-        raise HTTPException(status_code=503, detail="Shadow AI module unavailable")
-    try:
-        detector = ShadowAIDetector()
-        result = detector.scan_text(body.text)
-        return {"detected": result.detected, "services": getattr(result, "services", []), "risk_level": getattr(result, "risk_level", "unknown")}
-    except Exception as e:
-        logger.error(f"Shadow AI scan error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# ── Stripe Billing ─────────────────────────────────────────────────────────────
-
-class CheckoutRequest(BaseModel):
-    plan: str  # pro | team | business | enterprise
-    success_url: str = "https://app.vaultak.com?upgrade=success"
-    cancel_url: str = "https://app.vaultak.com?upgrade=cancelled"
-
-@app.post("/api/billing/checkout")
-def create_checkout(body: CheckoutRequest, org_id: str = Depends(get_org), db=Depends(get_db)):
-    price_id = STRIPE_PRICES.get(body.plan.lower())
-    if not price_id:
-        raise HTTPException(status_code=400, detail=f"Invalid plan: {body.plan}")
-    if not stripe.api_key:
-        raise HTTPException(status_code=503, detail="Billing not configured")
-    try:
-        # Get or create Stripe customer
-        with db.cursor() as cur:
-            cur.execute("SELECT stripe_customer_id, name FROM organizations WHERE id = %s", (org_id,))
-            row = cur.fetchone()
-
-        customer_id = row.get("stripe_customer_id") if row else None
-
-        if not customer_id:
-            customer = stripe.Customer.create(metadata={"org_id": org_id})
-            customer_id = customer.id
-            with db.cursor() as cur:
-                cur.execute("UPDATE organizations SET stripe_customer_id = %s WHERE id = %s",
-                           (customer_id, org_id))
-                db.commit()
-
-        session = stripe.checkout.Session.create(
-            customer=customer_id,
-            payment_method_types=["card"],
-            line_items=[{"price": price_id, "quantity": 1}],
-            mode="subscription",
-            success_url=body.success_url,
-            cancel_url=body.cancel_url,
-            metadata={"org_id": org_id, "plan": body.plan},
-        )
-        return {"checkout_url": session.url, "session_id": session.id}
-    except stripe.StripeError as e:
-        logger.error(f"Stripe error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/billing/status")
-def billing_status(org_id: str = Depends(get_org), db=Depends(get_db)):
-    with db.cursor() as cur:
-        cur.execute("SELECT plan, stripe_customer_id, stripe_subscription_id FROM organizations WHERE id = %s", (org_id,))
-        row = cur.fetchone()
-    return {
-        "plan": row.get("plan", "starter") if row else "starter",
-        "has_billing": bool(row.get("stripe_customer_id") if row else False),
-    }
-
-@app.post("/api/billing/portal")
-def billing_portal(org_id: str = Depends(get_org), db=Depends(get_db)):
-    with db.cursor() as cur:
-        cur.execute("SELECT stripe_customer_id FROM organizations WHERE id = %s", (org_id,))
-        row = cur.fetchone()
-    if not row or not row.get("stripe_customer_id"):
-        raise HTTPException(status_code=404, detail="No billing account found")
-    try:
-        session = stripe.billing_portal.Session.create(
-            customer=row["stripe_customer_id"],
-            return_url="https://app.vaultak.com",
-        )
-        return {"portal_url": session.url}
-    except stripe.StripeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-from fastapi import Request
-@app.post("/api/stripe/webhook")
-async def stripe_webhook(request: Request, db=Depends(get_db)):
-    payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
-    try:
-        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-    if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        org_id = session.get("metadata", {}).get("org_id")
-        plan = session.get("metadata", {}).get("plan", "pro")
-        sub_id = session.get("subscription")
-        if org_id:
-            with db.cursor() as cur:
-                cur.execute(
-                    "UPDATE organizations SET plan = %s, stripe_subscription_id = %s WHERE id = %s",
-                    (plan, sub_id, org_id)
-                )
-                db.commit()
-
-    elif event["type"] == "customer.subscription.deleted":
-        sub = event["data"]["object"]
-        customer_id = sub.get("customer")
-        with db.cursor() as cur:
-            cur.execute(
-                "UPDATE organizations SET plan = 'starter', stripe_subscription_id = NULL WHERE stripe_customer_id = %s",
-                (customer_id,)
-            )
-            db.commit()
-
-    elif event["type"] == "customer.subscription.updated":
-        sub = event["data"]["object"]
-        customer_id = sub.get("customer")
-        status = sub.get("status")
-        if status == "active":
-            with db.cursor() as cur:
-                cur.execute(
-                    "UPDATE organizations SET stripe_subscription_id = %s WHERE stripe_customer_id = %s",
-                    (sub["id"], customer_id)
-                )
-                db.commit()
-
-    return {"status": "ok"}
-
-
-@app.get("/download")
-def download_page():
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/#download", status_code=302)
-
-@app.get("/sitemap.xml")
-def sitemap():
-    from fastapi.responses import Response
-    xml = """<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://vaultak.com/</loc><priority>1.0</priority></url>
-  <url><loc>https://vaultak.com/pricing</loc><priority>0.9</priority></url>
-  <url><loc>https://vaultak.com/about</loc><priority>0.8</priority></url>
-  <url><loc>https://vaultak.com/security</loc><priority>0.8</priority></url>
-  <url><loc>https://vaultak.com/status</loc><priority>0.7</priority></url>
-  <url><loc>https://vaultak.com/privacy</loc><priority>0.6</priority></url>
-  <url><loc>https://vaultak.com/terms</loc><priority>0.6</priority></url>
-</urlset>"""
-    return Response(content=xml, media_type="application/xml")
-
-
-@app.get("/blog", response_class=HTMLResponse)
-def blog_index():
-    path = os.path.join(os.path.dirname(__file__), "blog_index.html")
-    return HTMLResponse(content=open(path).read())
-
-@app.get("/blog/{slug}", response_class=HTMLResponse)
-def blog_post(slug: str):
-    path = os.path.join(os.path.dirname(__file__), f"blog_{slug}.html")
-    if os.path.exists(path):
-        return HTMLResponse(content=open(path).read())
-    raise HTTPException(status_code=404, detail="Post not found")
-
-@app.get("/whitepaper/download")
-def whitepaper_download():
-    path = os.path.join(os.path.dirname(__file__), "vaultak_whitepaper.pdf")
-    return FileResponse(path, media_type="application/pdf", filename="Vaultak-White-Paper.pdf")
-
-@app.get("/whitepaper", response_class=HTMLResponse)
-def whitepaper():
-    path = os.path.join(os.path.dirname(__file__), "whitepaper.html")
-    return HTMLResponse(content=open(path).read())
 
 @app.get("/favicon.svg")
 def serve_favicon():
