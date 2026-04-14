@@ -537,10 +537,18 @@ footer {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@media (min-width: 901px) {
+  .hamburger { display: none !important; }
+  .mobile-menu { display: none !important; }
+}
+
 @media (max-width: 900px) {
   /* NAV */
   nav { padding: 0 20px; }
   .nav-links { display: none; }
+  .hamburger { display: flex; }
+  .mobile-menu { display: block; }
+  .mobile-menu.open { max-height: 400px; opacity: 1; pointer-events: all; }
 
   /* HERO */
   .hero { padding: 100px 20px 60px; }
@@ -617,6 +625,73 @@ footer {
   [style*="grid-template-columns:repeat(5"] { grid-template-columns: 1fr !important; }
   .footer-cols { grid-template-columns: 1fr !important; }
 }
+
+/* HAMBURGER */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 6px;
+  background: none;
+  border: none;
+  z-index: 200;
+}
+.hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--white);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* MOBILE MENU */
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  background: rgba(10,10,10,0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: max-height 0.35s ease, opacity 0.25s ease;
+  z-index: 150;
+}
+.mobile-menu a {
+  display: block;
+  padding: 16px 24px;
+  font-size: 15px;
+  color: var(--text2);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+  transition: color 0.15s;
+}
+.mobile-menu a:hover { color: var(--white); }
+.mobile-menu a:last-child { border-bottom: none; }
+.mobile-menu .mobile-menu-cta {
+  margin: 16px 24px 20px;
+  display: block;
+  text-align: center;
+  padding: 12px 24px;
+  background: var(--white);
+  color: #000;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 14px;
+  text-decoration: none;
+  border-bottom: none;
+}
 </style>
 </head>
 <body>
@@ -636,8 +711,42 @@ footer {
   </div>
   <div class="nav-right">
     <button class="nav-btn nav-btn-solid" onclick="document.getElementById('hero-email').focus()">Get early access</button>
+    <button class="hamburger" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobile-menu">
+  <a href="#what">What it does</a>
+  <a href="#how">How it works</a>
+  <a href="#modes">Response modes</a>
+  <a href="https://vaultak.com/pricing">Pricing</a>
+  <a href="https://docs.vaultak.com" target="_blank">Docs</a>
+  <a href="https://vaultak.com/blog">Blog</a>
+  <a href="https://app.vaultak.com" target="_blank">Sign in</a>
+  <a href="#" class="mobile-menu-cta" onclick="document.getElementById('mobile-menu').classList.remove('open');document.getElementById('hamburger-btn').classList.remove('open');document.getElementById('hero-email').focus();return false;">Get early access</a>
+</div>
+
+<script>
+function toggleMobileMenu() {
+  var menu = document.getElementById('mobile-menu');
+  var btn = document.getElementById('hamburger-btn');
+  menu.classList.toggle('open');
+  btn.classList.toggle('open');
+}
+// Close menu when a link is clicked
+document.addEventListener('DOMContentLoaded', function() {
+  var links = document.querySelectorAll('.mobile-menu a:not(.mobile-menu-cta)');
+  links.forEach(function(link) {
+    link.addEventListener('click', function() {
+      document.getElementById('mobile-menu').classList.remove('open');
+      document.getElementById('hamburger-btn').classList.remove('open');
+    });
+  });
+});
+</script>
 
 <!-- HERO -->
 <section class="hero">
