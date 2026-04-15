@@ -215,8 +215,20 @@ class VaultakSentryApp(tk.Tk):
 
     # ── SETUP ─────────────────────────────────────────────────────────────────
     def _build_setup(self):
-        f = self.tab_frames["setup"]
+        outer = self.tab_frames["setup"]
+        outer.grid_rowconfigure(0, weight=1)
+        outer.grid_columnconfigure(0, weight=1)
+        canvas = tk.Canvas(outer, bg=BG, highlightthickness=0)
+        scrollbar = tk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.grid(row=0, column=0, sticky="nsew")
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        f = tk.Frame(canvas, bg=BG)
         f.grid_columnconfigure(0, weight=1)
+        canvas_window = canvas.create_window((0,0), window=f, anchor="nw")
+        def on_resize(e): canvas.itemconfig(canvas_window, width=e.width)
+        canvas.bind("<Configure>", on_resize)
+        f.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
         PAD = 28
         r = 0
 
