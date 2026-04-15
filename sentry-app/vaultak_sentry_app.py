@@ -665,14 +665,15 @@ class VaultakSentryApp(tk.Tk):
 
         # Determine tag based on message content
         msg_lower = msg.lower()
-        if any(k in msg_lower for k in ["rollback", "reversed", "critical"]):
+        # System info lines always dim
+        if any(k in msg_lower for k in ["vaultak sentry started", "agent:", "alert >=", "dashboard:", "monitoring stopped"]):
+            tag = "info" if any(k in msg_lower for k in ["vaultak sentry started", "agent:", "dashboard:"]) else "dim"
+        elif any(k in msg_lower for k in ["rolled back", "reversing", "critical risk"]):
             tag = "rollback"
-        elif any(k in msg_lower for k in ["pause", "paused", "stopped", "blocked"]):
+        elif any(k in msg_lower for k in ["paused", "blocked", "stopped agent"]):
             tag = "pause"
-        elif any(k in msg_lower for k in ["alert", "flagged", "warning", "high", "risk"]):
+        elif any(k in msg_lower for k in ["flagged", "warning", "high risk", "alert triggered"]):
             tag = "alert"
-        elif any(k in msg_lower for k in ["started", "connected", "dashboard", "agent:"]):
-            tag = "info"
         else:
             tag = "dim"
 
