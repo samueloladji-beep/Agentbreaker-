@@ -39,6 +39,18 @@ STRIPE_PRICES = {
     "business":   os.environ.get("STRIPE_PRICE_BUSINESS", ""),
     "enterprise": os.environ.get("STRIPE_PRICE_ENTERPRISE", ""),
 }
+
+# Plan limits
+PLAN_LIMITS = {
+    "starter":    {"max_agents": 1,         "max_actions_per_month": 10_000},
+    "pro":        {"max_agents": 5,         "max_actions_per_month": 100_000},
+    "team":       {"max_agents": 15,        "max_actions_per_month": 500_000},
+    "business":   {"max_agents": 50,        "max_actions_per_month": 2_000_000},
+    "enterprise": {"max_agents": 999999,    "max_actions_per_month": 999999999},
+}
+
+def get_plan_limits(plan: str) -> dict:
+    return PLAN_LIMITS.get(plan, PLAN_LIMITS["starter"])
 from datetime import datetime, timezone
 import psycopg
 from psycopg.rows import dict_row
@@ -87,8 +99,18 @@ def init_db():
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 name TEXT NOT NULL,
                 slug TEXT UNIQUE NOT NULL,
+                plan TEXT NOT NULL DEFAULT 'starter',
+                stripe_customer_id TEXT,
+                stripe_subscription_id TEXT,
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )""")
+            # Migrate existing orgs — add plan columns if missing
+            cur.execute("""
+                ALTER TABLE organizations
+                ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'starter',
+                ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT,
+                ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT
+            """)
             cur.execute("""CREATE TABLE IF NOT EXISTS api_keys (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -431,6 +453,33 @@ def create_api_key(org_id: str, name: str = "default", db=Depends(get_db), _=Dep
 
 @app.post("/api/actions")
 def log_action(body: ActionLog, org_id: str = Depends(get_org), db=Depends(get_db)):
+    # Check plan limits
+    with db.cursor() as cur:
+        cur.execute("SELECT plan FROM organizations WHERE id = %s", (org_id,))
+        row = cur.fetchone()
+        plan = row["plan"] if row else "starter"
+        limits = get_plan_limits(plan)
+
+        # Check monthly action limit
+        cur.execute("""
+            SELECT COUNT(*) as action_count FROM actions
+            WHERE org_id = %s AND timestamp >= date_trunc('month', NOW())
+        """, (org_id,))
+        action_count = cur.fetchone()["action_count"] or 0
+        if action_count >= limits["max_actions_per_month"]:
+            return {"error": "monthly_action_limit_reached", "plan": plan,
+                    "limit": limits["max_actions_per_month"],
+                    "message": f"Monthly action limit reached for {plan} plan. Please upgrade."}
+
+        # Check agent limit
+        cur.execute("SELECT COUNT(DISTINCT agent_id) as agent_count FROM agents WHERE org_id = %s", (org_id,))
+        agent_count = cur.fetchone()["agent_count"] or 0
+        cur.execute("SELECT id FROM agents WHERE org_id = %s AND agent_id = %s", (org_id, body.agent_id))
+        existing = cur.fetchone()
+        if not existing and agent_count >= limits["max_agents"]:
+            return {"error": "agent_limit_reached", "plan": plan,
+                    "limit": limits["max_agents"],
+                    "message": f"Agent limit reached for {plan} plan ({limits['max_agents']} agents). Please upgrade."}
     try:
         # ── Auto PII masking ──────────────────────────────────────────────
         if HAS_PII:
@@ -741,6 +790,41 @@ def acknowledge_alert(alert_id: int, org_id: str = Depends(get_org), db=Depends(
         cur.execute("UPDATE alerts SET acknowledged = TRUE WHERE id = %s AND org_id = %s", (alert_id, org_id))
         db.commit()
     return {"acknowledged": True}
+
+@app.get("/api/org/plan")
+def get_org_plan(org_id: str = Depends(get_org), db=Depends(get_db)):
+    """Return the org's current plan and usage stats."""
+    with db.cursor() as cur:
+        cur.execute("SELECT plan FROM organizations WHERE id = %s", (org_id,))
+        row = cur.fetchone()
+        plan = row["plan"] if row else "starter"
+
+        # Count active agents this month
+        cur.execute("""
+            SELECT COUNT(DISTINCT agent_id) as agent_count
+            FROM agents WHERE org_id = %s
+        """, (org_id,))
+        agent_count = cur.fetchone()["agent_count"] or 0
+
+        # Count actions this month
+        cur.execute("""
+            SELECT COUNT(*) as action_count
+            FROM actions
+            WHERE org_id = %s
+            AND timestamp >= date_trunc('month', NOW())
+        """, (org_id,))
+        action_count = cur.fetchone()["action_count"] or 0
+
+    limits = get_plan_limits(plan)
+    return {
+        "plan": plan,
+        "agent_count": agent_count,
+        "action_count": action_count,
+        "max_agents": limits["max_agents"],
+        "max_actions_per_month": limits["max_actions_per_month"],
+        "agents_remaining": max(0, limits["max_agents"] - agent_count),
+        "can_add_agent": agent_count < limits["max_agents"],
+    }
 
 @app.get("/api/stats")
 def get_stats(org_id: str = Depends(get_org), db=Depends(get_db)):
