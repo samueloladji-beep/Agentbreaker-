@@ -443,7 +443,7 @@ class VaultakSentryApp(tk.Tk):
         self.log_text = tk.Text(
             log_frame,
             bg=BG3, fg=TEXT,
-            font=("Courier", 11),
+            font=("Courier", 13),
             relief="flat", bd=0, highlightthickness=0,
             state="disabled", wrap="word",
             padx=14, pady=14, cursor="arrow",
@@ -451,6 +451,12 @@ class VaultakSentryApp(tk.Tk):
         sb = tk.Scrollbar(log_frame, command=self.log_text.yview,
                           bg=BG3, troughcolor=BG3, activebackground=BG4)
         self.log_text.configure(yscrollcommand=sb.set)
+        # Color tags for severity
+        self.log_text.tag_config("alert",    foreground="#F59E0B", font=("Courier", 13, "bold"))
+        self.log_text.tag_config("pause",    foreground="#EF4444", font=("Courier", 13, "bold"))
+        self.log_text.tag_config("rollback", foreground="#FF3333", font=("Courier", 13, "bold"))
+        self.log_text.tag_config("info",     foreground="#6EE7B7", font=("Courier", 13))
+        self.log_text.tag_config("dim",      foreground="#6B7280", font=("Courier", 12))
         sb.grid(row=0, column=1, sticky="ns")
         self.log_text.grid(row=0, column=0, sticky="nsew")
 
@@ -655,7 +661,22 @@ class VaultakSentryApp(tk.Tk):
     def _log(self, msg):
         self.log_text.config(state="normal")
         ts = datetime.now().strftime("%H:%M:%S")
-        self.log_text.insert("end", f"[{ts}]  {msg}\n")
+        line = f"[{ts}]  {msg}\n"
+
+        # Determine tag based on message content
+        msg_lower = msg.lower()
+        if any(k in msg_lower for k in ["rollback", "reversed", "critical"]):
+            tag = "rollback"
+        elif any(k in msg_lower for k in ["pause", "paused", "stopped", "blocked"]):
+            tag = "pause"
+        elif any(k in msg_lower for k in ["alert", "flagged", "warning", "high", "risk"]):
+            tag = "alert"
+        elif any(k in msg_lower for k in ["started", "connected", "dashboard", "agent:"]):
+            tag = "info"
+        else:
+            tag = "dim"
+
+        self.log_text.insert("end", line, tag)
         self.log_text.see("end")
         self.log_text.config(state="disabled")
 
