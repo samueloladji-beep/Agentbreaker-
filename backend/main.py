@@ -28,6 +28,9 @@ except ImportError:
     HAS_SHADOW_AI = False
 from typing import Any, Dict, Optional, List
 import stripe
+
+def send_welcome_email(email, key, name):
+    pass  # TODO: implement welcome email
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_PRICES = {
