@@ -48,16 +48,16 @@ jobs:
           pkgbuild \
             --root pkg_root \
             --identifier com.vaultak.sentry \
-            --version 1.0.0 \
+            --version 1.0.3 \
             --install-location / \
-            "dist/VaultakSentry-1.0.0-arm64.pkg"
+            "dist/VaultakSentry-1.0.3-arm64.pkg"
           rm -rf pkg_root
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: VaultakSentry-macOS-arm64
-          path: sentry-app/dist/VaultakSentry-1.0.0-arm64.pkg
+          path: sentry-app/dist/VaultakSentry-1.0.3-arm64.pkg
 
 
   build-windows:
@@ -82,13 +82,13 @@ jobs:
 
       - name: Zip output
         working-directory: sentry-app/dist
-        run: Compress-Archive -Path "Vaultak Sentry" -DestinationPath "VaultakSentry-1.0.0-windows.zip"
+        run: Compress-Archive -Path "Vaultak Sentry" -DestinationPath "VaultakSentry-1.0.3-windows.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: VaultakSentry-windows
-          path: sentry-app/dist/VaultakSentry-1.0.0-windows.zip
+          path: sentry-app/dist/VaultakSentry-1.0.3-windows.zip
 
   build-linux:
     name: Linux
@@ -124,13 +124,13 @@ jobs:
       - name: Tar output
         run: |
           cd sentry-app/dist
-          tar -czf VaultakSentry-1.0.0-linux.tar.gz "Vaultak Sentry"
+          tar -czf VaultakSentry-1.0.3-linux.tar.gz "Vaultak Sentry"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: VaultakSentry-linux
-          path: sentry-app/dist/VaultakSentry-1.0.0-linux.tar.gz
+          path: sentry-app/dist/VaultakSentry-1.0.3-linux.tar.gz
 
   release:
     name: Create Release
