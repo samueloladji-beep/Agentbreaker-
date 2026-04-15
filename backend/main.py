@@ -2132,3 +2132,159 @@ async def stripe_webhook(request: Request, db=Depends(get_db)):
             cur.execute("UPDATE organizations SET plan=%s WHERE stripe_customer_id=%s", (plan, customer_id))
         db.commit()
     return {"received": True}
+
+# ─── Claude MCP Connector ─────────────────────────────────────────────────────
+MCP_TOOLS = [
+    {"name":"get_agents","description":"List all AI agents monitored by Vaultak, including status and risk scores.","input_schema":{"type":"object","properties":{"api_key":{"type":"string","description":"Your Vaultak API key (starts with vtk_)"}},"required":["api_key"]}},
+    {"name":"get_alerts","description":"Get active unacknowledged security alerts from Vaultak.","input_schema":{"type":"object","properties":{"api_key":{"type":"string","description":"Your Vaultak API key (starts with vtk_)"}},"required":["api_key"]}},
+    {"name":"get_risk_summary","description":"Get risk distribution and key security metrics from your Vaultak dashboard.","input_schema":{"type":"object","properties":{"api_key":{"type":"string","description":"Your Vaultak API key (starts with vtk_)"}},"required":["api_key"]}},
+    {"name":"acknowledge_alert","description":"Acknowledge a security alert by ID.","input_schema":{"type":"object","properties":{"api_key":{"type":"string"},"alert_id":{"type":"string"}},"required":["api_key","alert_id"]}},
+    {"name":"pause_agent","description":"Pause an AI agent to stop it from executing further actions.","input_schema":{"type":"object","properties":{"api_key":{"type":"string"},"agent_id":{"type":"string"}},"required":["api_key","agent_id"]}},
+    {"name":"resume_agent","description":"Resume a paused AI agent.","input_schema":{"type":"object","properties":{"api_key":{"type":"string"},"agent_id":{"type":"string"}},"required":["api_key","agent_id"]}},
+]
+
+def mcp_handle_tool(name: str, inputs: dict, db):
+    api_key = inputs.get("api_key", "")
+    if not api_key.startswith("vtk_"):
+        return {"error": "Invalid API key"}
+    with db.cursor() as cur:
+        cur.execute("SELECT org_id FROM api_keys WHERE key_value = %s", (api_key,))
+        row = cur.fetchone()
+    if not row:
+        return {"error": "API key not found"}
+    org_id = str(row["org_id"])
+
+    if name == "get_agents":
+        with db.cursor() as cur:
+            cur.execute("SELECT agent_id, name, paused, avg_risk_score, updated_at FROM agents WHERE org_id = %s", (org_id,))
+            agents = cur.fetchall()
+        return {"agents": [{"id": a["agent_id"], "name": a["name"], "status": "paused" if a["paused"] else "active", "avg_risk_score": round(float(a["avg_risk_score"] or 0), 2), "last_seen": str(a["updated_at"])} for a in agents], "total": len(agents)}
+
+    elif name == "get_alerts":
+        with db.cursor() as cur:
+            cur.execute("SELECT id, message, level, agent_id, created_at FROM alerts WHERE org_id = %s AND acknowledged = false ORDER BY created_at DESC LIMIT 20", (org_id,))
+            alerts = cur.fetchall()
+        return {"alerts": [{"id": str(a["id"]), "message": a["message"], "severity": a["level"], "agent_id": a["agent_id"], "created_at": str(a["created_at"])} for a in alerts], "total": len(alerts)}
+
+    elif name == "get_risk_summary":
+        with db.cursor() as cur:
+            cur.execute("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE flagged) as flagged, COUNT(*) FILTER (WHERE risk_score >= 0.75) as critical, COUNT(*) FILTER (WHERE risk_score >= 0.5 AND risk_score < 0.75) as high, COUNT(*) FILTER (WHERE risk_score >= 0.25 AND risk_score < 0.5) as medium, COUNT(*) FILTER (WHERE risk_score < 0.25) as low FROM actions WHERE org_id = %s", (org_id,))
+            s = cur.fetchone()
+        return {"total_actions": s["total"], "flagged_actions": s["flagged"], "risk_distribution": {"critical": s["critical"], "high": s["high"], "medium": s["medium"], "low": s["low"]}}
+
+    elif name == "acknowledge_alert":
+        alert_id = inputs.get("alert_id")
+        with db.cursor() as cur:
+            cur.execute("UPDATE alerts SET acknowledged = true WHERE id = %s AND org_id = %s", (alert_id, org_id))
+        db.commit()
+        return {"acknowledged": True, "alert_id": alert_id}
+
+    elif name == "pause_agent":
+        agent_id = inputs.get("agent_id")
+        with db.cursor() as cur:
+            cur.execute("UPDATE agents SET paused = true WHERE agent_id = %s AND org_id = %s", (agent_id, org_id))
+        db.commit()
+        return {"paused": True, "agent_id": agent_id}
+
+    elif name == "resume_agent":
+        agent_id = inputs.get("agent_id")
+        with db.cursor() as cur:
+            cur.execute("UPDATE agents SET paused = false WHERE agent_id = %s AND org_id = %s", (agent_id, org_id))
+        db.commit()
+        return {"resumed": True, "agent_id": agent_id}
+
+    return {"error": f"Unknown tool: {name}"}
+
+@app.get("/mcp")
+def mcp_info():
+    return {"name": "vaultak", "version": "1.0.0", "description": "Runtime security for AI agents — monitor, control and secure your AI agents.", "tools": MCP_TOOLS}
+
+@app.post("/mcp")
+async def mcp_endpoint(request: Request, db=Depends(get_db)):
+    body = await request.json()
+    method = body.get("method")
+    params = body.get("params", {})
+    req_id = body.get("id")
+    if method == "tools/list":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": MCP_TOOLS}}
+    elif method == "tools/call":
+        name = params.get("name")
+        inputs = params.get("arguments", {})
+        result = mcp_handle_tool(name, inputs, db)
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": json.dumps(result, indent=2)}]}}
+    return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method not found: {method}"}}
+
+
+# ─── Claude MCP Connector ─────────────────────────────────────────────────────
+MCP_TOOLS = [
+    {"name":"get_agents","description":"List all AI agents monitored by Vaultak, including status and risk scores.","input_schema":{"type":"object","properties":{"api_key":{"type":"string","description":"Your Vaultak API key (starts with vtk_)"}},"required":["api_key"]}},
+    {"name":"get_alerts","description":"Get active unacknowledged security alerts from Vaultak.","input_schema":{"type":"object","properties":{"api_key":{"type":"string","description":"Your Vaultak API key (starts with vtk_)"}},"required":["api_key"]}},
+    {"name":"get_risk_summary","description":"Get risk distribution and key security metrics from your Vaultak dashboard.","input_schema":{"type":"object","properties":{"api_key":{"type":"string","description":"Your Vaultak API key (starts with vtk_)"}},"required":["api_key"]}},
+    {"name":"acknowledge_alert","description":"Acknowledge a security alert by ID.","input_schema":{"type":"object","properties":{"api_key":{"type":"string"},"alert_id":{"type":"string"}},"required":["api_key","alert_id"]}},
+    {"name":"pause_agent","description":"Pause an AI agent to stop it from executing further actions.","input_schema":{"type":"object","properties":{"api_key":{"type":"string"},"agent_id":{"type":"string"}},"required":["api_key","agent_id"]}},
+    {"name":"resume_agent","description":"Resume a paused AI agent.","input_schema":{"type":"object","properties":{"api_key":{"type":"string"},"agent_id":{"type":"string"}},"required":["api_key","agent_id"]}},
+]
+
+def mcp_handle_tool(name, inputs, db):
+    api_key = inputs.get("api_key", "")
+    if not api_key.startswith("vtk_"):
+        return {"error": "Invalid API key"}
+    with db.cursor() as cur:
+        cur.execute("SELECT org_id FROM api_keys WHERE key_value = %s", (api_key,))
+        row = cur.fetchone()
+    if not row:
+        return {"error": "API key not found"}
+    org_id = str(row["org_id"])
+    if name == "get_agents":
+        with db.cursor() as cur:
+            cur.execute("SELECT agent_id, name, paused, avg_risk_score, updated_at FROM agents WHERE org_id = %s", (org_id,))
+            agents = cur.fetchall()
+        return {"agents": [{"id": a["agent_id"], "name": a["name"], "status": "paused" if a["paused"] else "active", "avg_risk_score": round(float(a["avg_risk_score"] or 0), 2), "last_seen": str(a["updated_at"])} for a in agents], "total": len(agents)}
+    elif name == "get_alerts":
+        with db.cursor() as cur:
+            cur.execute("SELECT id, message, level, agent_id, created_at FROM alerts WHERE org_id = %s AND acknowledged = false ORDER BY created_at DESC LIMIT 20", (org_id,))
+            alerts = cur.fetchall()
+        return {"alerts": [{"id": str(a["id"]), "message": a["message"], "severity": a["level"], "agent_id": a["agent_id"], "created_at": str(a["created_at"])} for a in alerts], "total": len(alerts)}
+    elif name == "get_risk_summary":
+        with db.cursor() as cur:
+            cur.execute("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE flagged) as flagged, COUNT(*) FILTER (WHERE risk_score >= 0.75) as critical, COUNT(*) FILTER (WHERE risk_score >= 0.5 AND risk_score < 0.75) as high, COUNT(*) FILTER (WHERE risk_score >= 0.25 AND risk_score < 0.5) as medium, COUNT(*) FILTER (WHERE risk_score < 0.25) as low FROM actions WHERE org_id = %s", (org_id,))
+            s = cur.fetchone()
+        return {"total_actions": s["total"], "flagged_actions": s["flagged"], "risk_distribution": {"critical": s["critical"], "high": s["high"], "medium": s["medium"], "low": s["low"]}}
+    elif name == "acknowledge_alert":
+        alert_id = inputs.get("alert_id")
+        with db.cursor() as cur:
+            cur.execute("UPDATE alerts SET acknowledged = true WHERE id = %s AND org_id = %s", (alert_id, org_id))
+        db.commit()
+        return {"acknowledged": True, "alert_id": alert_id}
+    elif name == "pause_agent":
+        agent_id = inputs.get("agent_id")
+        with db.cursor() as cur:
+            cur.execute("UPDATE agents SET paused = true WHERE agent_id = %s AND org_id = %s", (agent_id, org_id))
+        db.commit()
+        return {"paused": True, "agent_id": agent_id}
+    elif name == "resume_agent":
+        agent_id = inputs.get("agent_id")
+        with db.cursor() as cur:
+            cur.execute("UPDATE agents SET paused = false WHERE agent_id = %s AND org_id = %s", (agent_id, org_id))
+        db.commit()
+        return {"resumed": True, "agent_id": agent_id}
+    return {"error": f"Unknown tool: {name}"}
+
+@app.get("/mcp")
+def mcp_info():
+    return {"name": "vaultak", "version": "1.0.0", "description": "Runtime security for AI agents.", "tools": MCP_TOOLS}
+
+@app.post("/mcp")
+async def mcp_endpoint(request: Request, db=Depends(get_db)):
+    body = await request.json()
+    method = body.get("method")
+    params = body.get("params", {})
+    req_id = body.get("id")
+    if method == "tools/list":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": MCP_TOOLS}}
+    elif method == "tools/call":
+        name = params.get("name")
+        inputs = params.get("arguments", {})
+        result = mcp_handle_tool(name, inputs, db)
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": json.dumps(result, indent=2)}]}}
+    return {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method not found: {method}"}}
