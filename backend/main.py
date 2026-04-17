@@ -1449,14 +1449,15 @@ def pricing_page():
     <h1>Simple, transparent pricing</h1>
     <p class="subtitle">Start free. Scale as your agents do.</p>
 
-    <p style="text-align:center;font-size:13px;color:#555;margin-bottom:40px;font-style:italic;">Every competitor charges enterprise contract pricing starting at $50,000/year.<br>Vaultak is the only AI agent security platform with transparent self-serve pricing.</p>
+    <p style="text-align:center;font-size:13px;color:#555;margin-bottom:16px;font-style:italic;">Every competitor charges enterprise contract pricing starting at $50,000/year.<br>Vaultak is the only AI agent security platform with transparent self-serve pricing.</p>
+    <p style="text-align:center;font-size:13px;color:#8a8695;margin-bottom:40px;">All plans include the Vaultak SDK and Sentry desktop app for Mac, Windows, and Linux.</p>
 
     <div class="plans" style="grid-template-columns:repeat(5,1fr);gap:12px;">
 
       <div class="plan">
         <div class="plan-name">Starter</div>
         <div class="plan-price" style="font-size:30px;">$0<span>/mo</span></div>
-        <div class="plan-desc">For developers evaluating or building.</div>
+        <div class="plan-desc">For anyone getting started with AI agent monitoring.</div>
         <ul class="plan-features">
           <li><span class="check">&#10003;</span> 1 agent</li>
           <li><span class="check">&#10003;</span> 10,000 actions/mo</li>
@@ -1471,7 +1472,7 @@ def pricing_page():
       <div class="plan">
         <div class="plan-name">Pro</div>
         <div class="plan-price" style="font-size:30px;">$49<span>/mo</span></div>
-        <div class="plan-desc">For developers running agents in production.</div>
+        <div class="plan-desc">For individuals running agents in production.</div>
         <ul class="plan-features">
           <li><span class="check">&#10003;</span> Up to 5 agents</li>
           <li><span class="check">&#10003;</span> 100,000 actions/mo</li>
@@ -1487,7 +1488,7 @@ def pricing_page():
         <div class="plan-badge">Most popular</div>
         <div class="plan-name">Team</div>
         <div class="plan-price" style="font-size:30px;">$99<span>/mo</span></div>
-        <div class="plan-desc">For teams with multiple agents.</div>
+        <div class="plan-desc">For teams managing multiple agents.</div>
         <ul class="plan-features">
           <li><span class="check">&#10003;</span> Up to 15 agents</li>
           <li><span class="check">&#10003;</span> 500,000 actions/mo</li>
@@ -1502,7 +1503,7 @@ def pricing_page():
       <div class="plan">
         <div class="plan-name">Business</div>
         <div class="plan-price" style="font-size:30px;">$299<span>/mo</span></div>
-        <div class="plan-desc">For companies with compliance requirements.</div>
+        <div class="plan-desc">For companies with compliance and security requirements.</div>
         <ul class="plan-features">
           <li><span class="check">&#10003;</span> Up to 50 agents</li>
           <li><span class="check">&#10003;</span> 2,000,000 actions/mo</li>
@@ -1518,7 +1519,7 @@ def pricing_page():
       <div class="plan">
         <div class="plan-name">Enterprise</div>
         <div class="plan-price" style="font-size:24px;">From $999<span>/mo</span></div>
-        <div class="plan-desc">For large orgs with advanced security needs.</div>
+        <div class="plan-desc">For large organizations with advanced security needs.</div>
         <ul class="plan-features">
           <li><span class="check">&#10003;</span> Unlimited agents</li>
           <li><span class="check">&#10003;</span> Unlimited actions</li>
