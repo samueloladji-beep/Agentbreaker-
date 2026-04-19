@@ -56,7 +56,7 @@ import psycopg
 from psycopg.rows import dict_row
 from fastapi import FastAPI, HTTPException, Depends, Header, BackgroundTasks, Body, Request, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from pydantic import BaseModel
 
 logging.basicConfig(level=logging.INFO)
