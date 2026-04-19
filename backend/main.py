@@ -1599,6 +1599,11 @@ def blog_agent_risk_score():
 @app.get("/blog/how-to-monitor-ai-agents-in-production")
 def blog_monitor_agents():
     return FileResponse("blog_how-to-monitor-ai-agents-in-production.html")
+
+@app.get("/ba9df925e5dd46ed97752cbf9a77d459.txt")
+def indexnow_key():
+    return PlainTextResponse("ba9df925e5dd46ed97752cbf9a77d459")
+
 @app.get("/sitemap.xml")
 def sitemap():
     from fastapi.responses import Response
