@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Agent Risk Scanner — Vaultak</title>
+<title>AI Agent Risk Scanner, Vaultak</title>
 <meta name="description" content="Free tool: score your AI agent's security risk in seconds. Get a 0-100 risk score across 5 dimensions with actionable recommendations.">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -570,7 +570,7 @@
   <div class="hero">
     <div class="hero-eyebrow">// Free tool</div>
     <h1>AI Agent<br>Risk Scanner</h1>
-    <p class="hero-sub">Describe your agent and get a security score across 5 risk dimensions — with actionable recommendations in seconds.</p>
+    <p class="hero-sub">Describe your agent and get a security score across 5 risk dimensions, with actionable recommendations in seconds.</p>
   </div>
 
   <div class="card" id="scannerCard">
@@ -582,7 +582,7 @@
       </div>
 
       <div class="field">
-        <label>Capabilities — select all that apply</label>
+        <label>Capabilities, select all that apply</label>
         <div class="cap-grid" id="capTags">
           <div class="cap-tag" onclick="togglePreset(this,'read database')">read database</div>
           <div class="cap-tag" onclick="togglePreset(this,'write database')">write database</div>
@@ -634,7 +634,7 @@
     </div>
 
     <div class="dims-card">
-      <div class="section-label">Risk Breakdown — 5 Dimensions</div>
+      <div class="section-label">Risk Breakdown, 5 Dimensions</div>
       <div id="dimensionRows"></div>
     </div>
 
@@ -758,7 +758,7 @@
     if (score >= 60)  recs.push('Enable Vaultak auto-pause. Automatically halt the agent when risk score exceeds your defined threshold.');
     if (score >= 80)  recs.push('Enable the Vaultak rollback engine. Snapshot state before each high-risk action for instant recovery.');
     if (recs.length === 0) recs.push('Risk profile is within acceptable range. Add Vaultak monitoring for real-time visibility and audit logs.');
-    recs.push('Install Vaultak in 5 minutes — pip install vaultak — full documentation at docs.vaultak.com');
+    recs.push('Install Vaultak in 5 minutes, pip install vaultak, full documentation at docs.vaultak.com');
     return recs;
   }
 
@@ -819,7 +819,7 @@
   function shareOnTwitter() {
     const score = window._lastScore ?? '??';
     const tier  = window._lastTier  ?? '';
-    const text  = `Just scanned my AI agent with @VaultakHQ — scored ${score}/100 (${tier} risk).\n\nFree scan: vaultak.com/scan`;
+    const text  = `Just scanned my AI agent with @VaultakHQ, scored ${score}/100 (${tier} risk).\n\nFree scan: vaultak.com/scan`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   }
 </script>
