@@ -738,6 +738,51 @@ def get_actions(limit: int = 50, org_id: str = Depends(get_org), db=Depends(get_
         cur.execute("SELECT * FROM actions WHERE org_id = %s ORDER BY timestamp DESC LIMIT %s", (org_id, limit))
         return [dict(r) for r in cur.fetchall()]
 
+
+@app.post("/api/agents")
+def create_agent(body: dict, org_id: str = Depends(get_org), db=Depends(get_db)):
+    """Manually register an agent — for SDK users who manage agents via dashboard."""
+    name = body.get("name", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Agent name is required")
+    with db.cursor() as cur:
+        # Check plan limit
+        cur.execute("SELECT plan FROM organizations WHERE id = %s", (org_id,))
+        row = cur.fetchone()
+        plan = row["plan"] if row else "starter"
+        limits = get_plan_limits(plan)
+        cur.execute("SELECT COUNT(DISTINCT agent_id) as cnt FROM agents WHERE org_id = %s", (org_id,))
+        count = cur.fetchone()["cnt"] or 0
+        if count >= limits["max_agents"]:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Agent limit reached for {plan} plan ({limits['max_agents']} agent{'s' if limits['max_agents'] != 1 else ''}). Please upgrade."
+            )
+        # Check duplicate
+        agent_id = body.get("agent_id") or name.lower().replace(" ", "-")
+        cur.execute("SELECT id FROM agents WHERE org_id = %s AND agent_id = %s", (org_id, agent_id))
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="An agent with this ID already exists")
+        cur.execute("""
+            INSERT INTO agents (org_id, agent_id, name, kill_switch_mode)
+            VALUES (%s, %s, %s, 'alert')
+            RETURNING id, agent_id, name, kill_switch_mode, paused, created_at
+        """, (org_id, agent_id, name))
+        agent = dict(cur.fetchone())
+        db.commit()
+    return agent
+
+@app.delete("/api/agents/{agent_id}")
+def delete_agent(agent_id: str, org_id: str = Depends(get_org), db=Depends(get_db)):
+    """Delete a registered agent."""
+    with db.cursor() as cur:
+        cur.execute("DELETE FROM agents WHERE agent_id = %s AND org_id = %s RETURNING id", (agent_id, org_id))
+        deleted = cur.fetchone()
+        db.commit()
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return {"deleted": True}
+
 @app.get("/api/agents")
 def get_agents(org_id: str = Depends(get_org), db=Depends(get_db)):
     with db.cursor() as cur:
