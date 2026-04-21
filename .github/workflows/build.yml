@@ -83,18 +83,44 @@ jobs:
           codesign --force --sign "$SIGN_ID" --options runtime --entitlements "$ENTITLEMENTS" "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
 
-          # Step 2: Package into .pkg
+          # Step 2: Package into .pkg preserving signatures
           cd sentry-app
+          # Analyze bundle to generate component plist
+          pkgbuild --analyze --root "dist/Vaultak Sentry.app" component.plist || true
+          # Update plist to prevent relocation which breaks signatures
+          python3 -c "
+import plistlib, os
+if os.path.exists('component.plist'):
+    with open('component.plist', 'rb') as f:
+        pl = plistlib.load(f)
+    for item in pl:
+        item['BundleIsRelocatable'] = False
+        item.pop('BundleOverwriteAction', None)
+    with open('component.plist', 'wb') as f:
+        plistlib.dump(pl, f)
+    print('component.plist updated')
+else:
+    print('no component.plist found')
+"
           mkdir -p pkg_root/Applications
           ditto "dist/Vaultak Sentry.app" "pkg_root/Applications/Vaultak Sentry.app"
-          pkgbuild \
-            --root pkg_root \
-            --identifier com.vaultak.sentry \
-            --version 1.0.3 \
-            --install-location / \
-            "dist/VaultakSentry-1.0.3-arm64.pkg"
-          rm -rf pkg_root
-
+          if [ -f component.plist ]; then
+            pkgbuild \
+              --root pkg_root \
+              --component-plist component.plist \
+              --identifier com.vaultak.sentry \
+              --version 1.0.3 \
+              --install-location / \
+              "dist/VaultakSentry-1.0.3-arm64.pkg"
+          else
+            pkgbuild \
+              --root pkg_root \
+              --identifier com.vaultak.sentry \
+              --version 1.0.3 \
+              --install-location / \
+              "dist/VaultakSentry-1.0.3-arm64.pkg"
+          fi
+          rm -rf pkg_root component.plist
           echo "Packaging complete"
 
       - name: Notarize .pkg
