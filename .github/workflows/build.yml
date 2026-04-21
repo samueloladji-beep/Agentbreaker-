@@ -79,11 +79,23 @@ jobs:
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          xcrun notarytool submit sentry-app/dist/VaultakSentry-1.0.3-arm64.pkg \
+          SUBMISSION=$(xcrun notarytool submit sentry-app/dist/VaultakSentry-1.0.3-arm64.pkg \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait
+            --wait --output-format json)
+          echo "$SUBMISSION"
+          SUBMISSION_ID=$(echo "$SUBMISSION" | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))")
+          echo "Submission ID: $SUBMISSION_ID"
+          xcrun notarytool log "$SUBMISSION_ID" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" || true
+          STATUS=$(echo "$SUBMISSION" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))")
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "Notarization failed with status: $STATUS"
+            exit 1
+          fi
           xcrun stapler staple sentry-app/dist/VaultakSentry-1.0.3-arm64.pkg
 
       - name: Upload artifact
