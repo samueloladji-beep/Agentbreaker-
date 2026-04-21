@@ -86,7 +86,7 @@ jobs:
           # Step 2: Package into .pkg
           cd sentry-app
           mkdir -p pkg_root/Applications
-          cp -r "dist/Vaultak Sentry.app" "pkg_root/Applications/"
+          ditto "dist/Vaultak Sentry.app" "pkg_root/Applications/Vaultak Sentry.app"
           pkgbuild \
             --root pkg_root \
             --identifier com.vaultak.sentry \
