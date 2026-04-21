@@ -57,6 +57,7 @@ jobs:
           codesign --deep --force --verify --verbose \
             --sign "Developer ID Application: Samuel Oladji (R5UQZVTD4S)" \
             --options runtime \
+            --entitlements sentry-app/entitlements.plist \
             "sentry-app/dist/Vaultak Sentry.app"
 
       - name: Package .pkg
