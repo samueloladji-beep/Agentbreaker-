@@ -2110,6 +2110,31 @@ async def mcp_get():
     return {"service": "vaultak-mcp", "version": APP_VERSION, "tools": [t["name"] for t in MCP_TOOLS], "docs": "docs.vaultak.com"}
 
 
+@app.get("/blog/ai-agent-hipaa-soc2-compliance", response_class=HTMLResponse)
+def blog_hipaa():
+    p = os.path.join(os.path.dirname(__file__), "blog_ai-agent-hipaa-soc2-compliance.html")
+    return open(p).read() if os.path.exists(p) else HTMLResponse("Not found", 404)
+
+@app.get("/blog/ai-agent-security-not-optional-2026", response_class=HTMLResponse)
+def blog_security_not_optional():
+    p = os.path.join(os.path.dirname(__file__), "blog_ai-agent-security-not-optional-2026.html")
+    return open(p).read() if os.path.exists(p) else HTMLResponse("Not found", 404)
+
+@app.get("/blog/hidden-costs-unsecured-ai-agent", response_class=HTMLResponse)
+def blog_hidden_costs():
+    p = os.path.join(os.path.dirname(__file__), "blog_hidden-costs-unsecured-ai-agent.html")
+    return open(p).read() if os.path.exists(p) else HTMLResponse("Not found", 404)
+
+@app.get("/blog/what-is-ai-agent-runtime-security", response_class=HTMLResponse)
+def blog_what_is():
+    p = os.path.join(os.path.dirname(__file__), "blog_what-is-ai-agent-runtime-security.html")
+    return open(p).read() if os.path.exists(p) else HTMLResponse("Not found", 404)
+
+@app.get("/blog/why-your-ai-agent-needs-a-kill-switch", response_class=HTMLResponse)
+def blog_kill_switch():
+    p = os.path.join(os.path.dirname(__file__), "blog_why-your-ai-agent-needs-a-kill-switch.html")
+    return open(p).read() if os.path.exists(p) else HTMLResponse("Not found", 404)
+
 @app.get("/blog/ai-agent-policy-enforcement", response_class=HTMLResponse)
 def serve_blog_ai_agent_policy_enforcement():
     p = os.path.join(os.path.dirname(__file__), "blog_ai-agent-policy-enforcement.html")
