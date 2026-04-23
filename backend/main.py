@@ -1637,6 +1637,11 @@ def pricing_page():
     return HTMLResponse(content=html)
 
 
+@app.get("/whitepaper", response_class=HTMLResponse)
+def whitepaper():
+    p = os.path.join(os.path.dirname(__file__), "whitepaper.html")
+    return open(p).read() if os.path.exists(p) else HTMLResponse("Not found", 404)
+
 @app.get("/blog", response_class=HTMLResponse)
 def blog_index():
     with open(os.path.join(os.path.dirname(__file__), "blog_index.html")) as f:
