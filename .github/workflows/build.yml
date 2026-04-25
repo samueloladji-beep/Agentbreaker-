@@ -114,22 +114,40 @@ jobs:
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          SUBMISSION=$(xcrun notarytool submit sentry-app/dist/VaultakSentry-1.0.3-arm64.pkg \
+          # Submit without waiting
+          SUBMISSION_ID=$(xcrun notarytool submit sentry-app/dist/VaultakSentry-1.0.3-arm64.pkg \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait --timeout 30m --output-format json)
-          echo "$SUBMISSION"
-          SUBMISSION_ID=$(echo "$SUBMISSION" | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))")
+            --output-format json | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))")
+          echo "Submission ID: $SUBMISSION_ID"
+
+          # Poll every 30 seconds for up to 40 minutes
+          STATUS=""
+          for i in $(seq 1 80); do
+            sleep 30
+            STATUS=$(xcrun notarytool info "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_APP_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              --output-format json | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))")
+            echo "Attempt $i: $STATUS"
+            if [ "$STATUS" = "Accepted" ] || [ "$STATUS" = "Invalid" ]; then
+              break
+            fi
+          done
+
+          # Fetch log
           xcrun notarytool log "$SUBMISSION_ID" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" || true
-          STATUS=$(echo "$SUBMISSION" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))")
+
           if [ "$STATUS" != "Accepted" ]; then
             echo "Notarization failed with status: $STATUS"
             exit 1
           fi
+
           xcrun stapler staple sentry-app/dist/VaultakSentry-1.0.3-arm64.pkg
 
       - name: Upload artifact
